@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/heyuuu/gophp/tests"
+	"os"
 	"path/filepath"
 )
 
 type testsListParam struct {
-	SrcDir string `form:"src" binding:"required"`
+	Src    string `form:"src" binding:"required"`
 	Path   string `form:"path"`
 	Offset int    `form:"offset"`
 	Limit  int    `form:"limit"`
@@ -22,33 +23,36 @@ func TestsList(c *gin.Context) ApiResult {
 		return apiError(err)
 	}
 
-	var testNames []string
+	var testCases []*tests.TestCase
 	if p.Path == "" {
-		testNames, err = tests.FindTestFilesInSrcDir(p.SrcDir, false)
+		testCases, err = tests.FindTestCasesInSrcDir(p.Src, false)
 	} else {
-		dir := filepath.Join(p.SrcDir, p.Path)
-		testNames, err = tests.FindTestFiles(dir)
+		dir := filepath.Join(p.Src, p.Path)
+		testCases, err = tests.FindTestCases(p.Src, dir)
 	}
 	if err != nil {
 		return apiError(err)
 	}
 
 	// offset && limit
+	total := len(testCases)
 	if p.Offset > 0 {
-		if len(testNames) > p.Offset {
-			testNames = testNames[p.Offset:]
+		if len(testCases) > p.Offset {
+			testCases = testCases[p.Offset:]
 		} else {
-			testNames = nil
+			testCases = nil
 		}
 	}
-	total := len(testNames)
-	if p.Limit > 0 && p.Limit < len(testNames) {
-		testNames = testNames[:p.Limit]
+	if p.Limit > 0 && p.Limit < len(testCases) {
+		testCases = testCases[:p.Limit]
 	}
-	for i, testFile := range testNames {
-		testNames[i], _ = filepath.Rel(p.SrcDir, testFile)
+	count := len(testCases)
+
+	// fileNames
+	var testNames = make([]string, len(testCases))
+	for i, tc := range testCases {
+		testNames[i] = tc.FileName()
 	}
-	count := len(testNames)
 
 	return apiSucc(gin.H{
 		"list":   testNames,
@@ -60,8 +64,8 @@ func TestsList(c *gin.Context) ApiResult {
 }
 
 type testsDetailParam struct {
-	SrcDir string `form:"src" binding:"required"`
-	Path   string `form:"path" binding:"required"`
+	Src  string `form:"src" binding:"required"`
+	Path string `form:"path" binding:"required"`
 }
 
 func TestsDetail(c *gin.Context) ApiResult {
@@ -71,19 +75,72 @@ func TestsDetail(c *gin.Context) ApiResult {
 		return apiError(err)
 	}
 
-	shortFileName := p.Path
-	realPath := filepath.Join(p.SrcDir, p.Path)
+	fileName := p.Path
+	filePath := filepath.Join(p.Src, p.Path)
 
-	tc, err := tests.ParseTestCase(0, realPath, shortFileName)
+	tc := tests.NewTestCase(fileName, filePath)
+	sections, err := tc.Parse()
 	if err != nil {
 		return apiError(fmt.Errorf("parse test-case file failed: %w", err))
 	}
 
 	return apiSucc(gin.H{
-		"sections": tc.Sections(),
+		"src":      p.Src,
+		"path":     p.Path,
+		"sections": sections,
 	})
 }
 
+type testsRunParams struct {
+	Src      string            `form:"src" binding:"required"`
+	Path     string            `form:"path"`
+	Sections map[string]string `form:"sections" binding:"required"`
+}
+
 func TestsRun(c *gin.Context) ApiResult {
-	return apiFail(0, "todo TestsRun")
+	var err error
+	var p testsRunParams
+	if err = c.ShouldBindJSON(&p); err != nil {
+		return apiError(err)
+	}
+
+	var fileName, filePath string
+	if p.Path != "" {
+		fileName = p.Path
+		filePath = filepath.Join(p.Src, p.Path)
+	} else {
+		filePath, err = createTempTestFile()
+		if err != nil {
+			return apiError(err)
+		}
+
+		fileName = filepath.Base(filePath)
+	}
+
+	tc := tests.NewTestCaseParsed(fileName, filePath, p.Sections)
+	result := runTestCase(p.Src, tc)
+
+	return apiSucc(gin.H{
+		"fileName": tc.FileName(),
+		"filePath": tc.FilePath(),
+		"sections": tc.Sections(),
+		"result":   result.MainType(),
+		"output":   result.Output(),
+	})
+}
+
+func createTempTestFile() (string, error) {
+	fs, err := os.CreateTemp(os.TempDir(), "gophp_dev_*.phpt")
+	if err != nil {
+		return "", err
+	}
+	defer fs.Close()
+
+	return fs.Name(), nil
+}
+
+func runTestCase(src string, tc *tests.TestCase) *tests.Result {
+	conf := tests.DefaultConfig()
+	conf.SrcDir = src
+	return tests.TestOneCase(conf, tc)
 }
