@@ -113,14 +113,41 @@ func TestDetail(c *gin.Context) ApiResult {
 }
 
 type testRunParams struct {
-	Src      string            `form:"src" binding:"required"`
-	Path     string            `form:"path"`
-	Sections map[string]string `form:"sections" binding:"required"`
+	Src  string `form:"src" binding:"required"`
+	Path string `form:"path" binding:"required"`
 }
 
 func TestRun(c *gin.Context) ApiResult {
 	var err error
 	var p testRunParams
+	if err = c.ShouldBindJSON(&p); err != nil {
+		return apiError(err)
+	}
+
+	fileName := p.Path
+	filePath := filepath.Join(p.Src, p.Path)
+
+	tc := tests.NewTestCase(fileName, filePath)
+	result := runTestCase(p.Src, tc)
+
+	return apiSucc(gin.H{
+		"fileName": tc.FileName(),
+		"filePath": tc.FilePath(),
+		"sections": tc.Sections(),
+		"result":   result.MainType(),
+		"output":   result.Output(),
+	})
+}
+
+type testRunCustomParams struct {
+	Src      string            `form:"src" binding:"required"`
+	Path     string            `form:"path"`
+	Sections map[string]string `form:"sections" binding:"required"`
+}
+
+func TestRunCustom(c *gin.Context) ApiResult {
+	var err error
+	var p testRunCustomParams
 	if err = c.ShouldBindJSON(&p); err != nil {
 		return apiError(err)
 	}

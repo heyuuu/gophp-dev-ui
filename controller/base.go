@@ -13,11 +13,19 @@ type ApiResult struct {
 	Data  any    `json:"data"`
 }
 
+const (
+	CodeSucc = 0
+	CodeFail = 1
+)
+
 func apiSucc(data any) ApiResult {
-	return ApiResult{Data: data}
+	return ApiResult{Code: CodeSucc, Data: data}
 }
 
 func apiFail(code int, err string) ApiResult {
+	if code == CodeSucc {
+		code = CodeFail
+	}
 	return ApiResult{Code: code, Error: err}
 }
 
@@ -26,7 +34,7 @@ func apiError(err error) ApiResult {
 	if coded, ok := err.(interface{ Code() int }); ok {
 		code = coded.Code()
 	}
-	return ApiResult{Code: code, Error: err.Error()}
+	return apiFail(code, err.Error())
 }
 
 func ApiHandler(h func(c *gin.Context) ApiResult) gin.HandlerFunc {
