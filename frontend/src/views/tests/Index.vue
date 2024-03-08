@@ -5,7 +5,7 @@
       <el-input v-model="src" class="input">
         <template #prepend>src</template>
         <template #append>
-          <el-button :icon="Search"></el-button>
+          <el-button :icon="Search" @click="update"></el-button>
         </template>
       </el-input>
     </el-col>
@@ -14,8 +14,8 @@
   <el-row style="margin-top: 20px;">
     <el-col :span="18" :offset="3">
       <el-table :data="tableData" height="800">
-        <el-table-column type="index"></el-table-column>
-        <el-table-column prop="name" label="Name"></el-table-column>
+        <el-table-column type="index"/>
+        <el-table-column prop="name" label="Name"/>
         <el-table-column prop="name" label="Link">
           <template #default="scope">
             <el-link type="primary" target="_blank" :href='"/tests/list?src=" + src + "&path=" + scope.row.name'>列表页</el-link>
