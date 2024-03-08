@@ -8,14 +8,14 @@ import (
 	"path/filepath"
 )
 
-type testsPathListParam struct {
+type testPathListParam struct {
 	Src string `form:"src" binding:"required"`
 }
 
-func TestsPathList(c *gin.Context) ApiResult {
+func TestPathList(c *gin.Context) ApiResult {
 	var err error
 
-	var p testsPathListParam
+	var p testPathListParam
 	if err = c.ShouldBindQuery(&p); err != nil {
 		return apiError(err)
 	}
@@ -29,17 +29,17 @@ func TestsPathList(c *gin.Context) ApiResult {
 	})
 }
 
-type testsListParam struct {
+type testListParam struct {
 	Src    string `form:"src" binding:"required"`
 	Path   string `form:"path"`
 	Offset int    `form:"offset"`
 	Limit  int    `form:"limit"`
 }
 
-func TestsList(c *gin.Context) ApiResult {
+func TestList(c *gin.Context) ApiResult {
 	var err error
 
-	var p testsListParam
+	var p testListParam
 	if err = c.ShouldBindQuery(&p); err != nil {
 		return apiError(err)
 	}
@@ -84,14 +84,14 @@ func TestsList(c *gin.Context) ApiResult {
 	})
 }
 
-type testsDetailParam struct {
+type testDetailParam struct {
 	Src  string `form:"src" binding:"required"`
 	Path string `form:"path" binding:"required"`
 }
 
-func TestsDetail(c *gin.Context) ApiResult {
+func TestDetail(c *gin.Context) ApiResult {
 	var err error
-	var p testsDetailParam
+	var p testDetailParam
 	if err = c.ShouldBindQuery(&p); err != nil {
 		return apiError(err)
 	}
@@ -112,15 +112,15 @@ func TestsDetail(c *gin.Context) ApiResult {
 	})
 }
 
-type testsRunParams struct {
+type testRunParams struct {
 	Src      string            `form:"src" binding:"required"`
 	Path     string            `form:"path"`
 	Sections map[string]string `form:"sections" binding:"required"`
 }
 
-func TestsRun(c *gin.Context) ApiResult {
+func TestRun(c *gin.Context) ApiResult {
 	var err error
-	var p testsRunParams
+	var p testRunParams
 	if err = c.ShouldBindJSON(&p); err != nil {
 		return apiError(err)
 	}

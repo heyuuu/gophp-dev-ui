@@ -11,8 +11,8 @@ func InitRouter(r *gin.Engine) {
 	r.GET("/", controller.Index)
 
 	// api
-	r.GET("/tests/path_list", controller.ApiHandler(controller.TestsPathList))
-	r.GET("/tests/list", controller.ApiHandler(controller.TestsList))
-	r.GET("/tests/detail", controller.ApiHandler(controller.TestsDetail))
-	r.POST("/tests/run", controller.ApiHandler(controller.TestsRun))
+	r.GET("/test/path_list", controller.ApiHandler(controller.TestPathList))
+	r.GET("/test/list", controller.ApiHandler(controller.TestList))
+	r.GET("/test/detail", controller.ApiHandler(controller.TestDetail))
+	r.POST("/test/run", controller.ApiHandler(controller.TestRun))
 }
