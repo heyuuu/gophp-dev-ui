@@ -6,5 +6,5 @@ import (
 )
 
 func Index(c *gin.Context) {
-	c.String(http.StatusOK, "index")
+	c.Redirect(http.StatusMovedPermanently, "static")
 }

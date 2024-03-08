@@ -8,6 +8,27 @@ import (
 	"path/filepath"
 )
 
+type testsPathListParam struct {
+	Src string `form:"src" binding:"required"`
+}
+
+func TestsPathList(c *gin.Context) ApiResult {
+	var err error
+
+	var p testsPathListParam
+	if err = c.ShouldBindQuery(&p); err != nil {
+		return apiError(err)
+	}
+
+	// testCases
+	testPaths := tests.FindTestPathsInSrcDir(p.Src, true)
+
+	return apiSucc(gin.H{
+		"list":  testPaths,
+		"count": len(testPaths),
+	})
+}
+
 type testsListParam struct {
 	Src    string `form:"src" binding:"required"`
 	Path   string `form:"path"`
