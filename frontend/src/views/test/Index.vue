@@ -18,10 +18,10 @@
         <el-table-column prop="name" label="Name"/>
         <el-table-column prop="name" label="Link">
           <template #default="scope">
-            <el-link type="primary" target="_blank" :href='"/tests/list?src=" + src + "&path=" + scope.row.name'>列表页</el-link>
+            <el-link type="primary" target="_blank" :href='pageTestList(src, scope.row.name)'>列表页</el-link>
           </template>
         </el-table-column>
-      </el-table>†
+      </el-table>
     </el-col>
   </el-row>
 </template>
@@ -30,6 +30,7 @@
 import { ref, watch, computed, type Ref } from "vue";
 import { Search } from "@element-plus/icons-vue";
 import { ApiTestPathList } from '@/api/test';
+import { pageTestList } from '@/router/routes'
 
 const src = ref("/Users/heyu/Code/src/php-7.4.33")
 const dirList: Ref<String[]> = ref([])

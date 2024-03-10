@@ -25,9 +25,11 @@
                 <el-table-column label="name"   prop="name" />
                 <el-table-column label="status" prop="status" width="100" />
                 <el-table-column label="herf">
-                    <el-link type="primary" href="" target="_blank">detail</el-link>&nbsp;
-                    <el-link type="primary" href="" target="_blank">retry</el-link>&nbsp;
-                    <el-link type="primary" href="" target="_blank">paste</el-link>
+                    <template #default="scope">
+                        <el-link type="primary" target="_blank" :href='pageTestRun(src, scope.row.name)'>detail</el-link>&nbsp;
+                        <el-link type="primary" target="_blank" href="">retry</el-link>&nbsp;
+                        <el-link type="primary" target="_blank" href="">paste</el-link>
+                    </template>
                 </el-table-column>
             </el-table>
         </el-col>
@@ -40,9 +42,9 @@
 
 <script setup lang="ts">
 import { ApiTestList } from '@/api/test';
-import { id } from "element-plus/es/locales.mjs";
 import { ref, type Ref, watch, computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
+import { pageTestRun } from '@/router/routes'
 
 // uri 参数
 const route = useRoute()
