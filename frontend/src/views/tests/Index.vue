@@ -29,7 +29,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, type Ref } from "vue";
 import { Search } from "@element-plus/icons-vue";
-import { ApiTestsPathList } from "../../api/tests"
+import { ApiTestPathList } from '@/api/test';
 
 const src = ref("/Users/heyu/Code/src/php-7.4.33")
 const dirList: Ref<String[]> = ref([])
@@ -49,14 +49,14 @@ async function update() {
     return
   }
 
-  const rep = await ApiTestsPathList({
+  const rep = await ApiTestPathList({
     src: src.value,
   })
-  dirList.value = rep.data.data.list
+  dirList.value = rep.data.list
   console.log({rep})
 }
 
 watch(src, update)
 update()
 
-</script>
+</script>../../api/test

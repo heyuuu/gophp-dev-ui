@@ -39,7 +39,7 @@
 </template>
 
 <script setup lang="ts">
-import { ApiTestList } from "@/api/tests";
+import { ApiTestList } from '@/api/test';
 import { id } from "element-plus/es/locales.mjs";
 import { ref, type Ref, watch, computed, onMounted } from "vue";
 import { useRoute } from "vue-router";

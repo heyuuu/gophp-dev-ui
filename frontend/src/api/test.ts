@@ -37,13 +37,13 @@ type ApiTestDetailParam = {
 type ApiTestDetailResult = ApiResult<{
     src: string,
     path: string,
-    sections: object,
+    sections: Sections,
 }>
 export const ApiTestDetail = async function(params:ApiTestListParam) {
-    return await request<ApiTestListResult>('GET', "test/detail", params)
+    return await request<ApiTestDetailResult>('GET', "test/detail", params)
 }
 
-type Sections = {[K:string]: string}
+export type Sections = {[K:string]: string}
 
 type ApiTestRunParam = {
     src: string,
