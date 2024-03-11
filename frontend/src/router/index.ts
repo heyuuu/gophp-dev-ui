@@ -10,20 +10,20 @@ const router = createRouter({
       redirect: '/test/'
     },
     {
-      path:'/test/',
+      path: '/test/',
       name: 'test',
       component: () => import('../views/test/Index.vue')
     },
     {
-      path:'/test/list',
+      path: '/test/list',
       name: 'test_list',
       component: () => import('../views/test/List.vue')
     },
     {
-      path:'/test/run',
+      path: '/test/run',
       name: 'test_run',
       component: () => import('../views/test/Run.vue')
-    },
+    }
   ]
 })
 
