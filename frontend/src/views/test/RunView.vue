@@ -1,17 +1,17 @@
 <template>
-  <el-row>
+  <el-row @keyup.ctrl.enter="run">
     <el-col :span="8">
-      <el-form label-width="auto">
+      <el-form label-width="auto" class="main-card">
         <!-- sections -->
-        <el-form-item v-for="(sec, index) in sections" :label="sec.name">
-          <template v-if="sec.type === 'input'">
-            <el-input v-model="sections[index].content"></el-input>
+        <el-form-item v-for="(sec, index) in sections" :key="index" :label="sec.type">
+          <template v-if="sectionShowType(sec.type) === 'input'">
+            <el-input v-model="sec.text"></el-input>
           </template>
-          <template v-else-if="sec.type === 'text'">
-            <el-input v-model="sections[index].content" type="textarea"></el-input>
+          <template v-else-if="sectionShowType(sec.type) === 'text'">
+            <el-input v-model="sec.text" type="textarea"></el-input>
           </template>
           <template v-else>
-            <Editor :value="sec.content" :height="200" />
+            <CodeEditor :value="sec.text" :height="400" />
           </template>
         </el-form-item>
         <!-- buttons -->
@@ -22,17 +22,29 @@
         </el-form-item>
       </el-form>
     </el-col>
-    <el-col :span="16">222</el-col>
+    <el-col :span="16" class="detail-card">
+      <RunResultCard :info="runResult.info" :output="runResult.output" :expect="runResult.expect" />
+    </el-col>
   </el-row>
 </template>
 
+<style scoped>
+.main-card {
+  padding: 10px 0 0 10px;
+}
+.detail-card {
+  padding: 10px 10px 0 5px;
+}
+</style>
+
 <script setup lang="ts">
-import { onMounted, ref, watch, type Ref } from 'vue'
+import { onMounted, ref, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
-import Editor from '@/components/Editor.vue'
-import { apiTestDetail } from '@/api/test'
-import type { Sections } from '@/api/test'
-import { pa, sr } from 'element-plus/es/locales.mjs'
+import CodeEditor from '@/components/CodeEditor.vue'
+import { apiTestDetail, apiTestRunCustom } from '@/api/test'
+import type { SectionType, Section } from '@/models/test'
+import { sectionMapToList, sectionListToMap } from '@/models/test'
+import RunResultCard from '@/components/test/RunResultCard.vue'
 
 // uri 参数
 const route = useRoute()
@@ -41,16 +53,17 @@ const path = (route.query.path || '') as string
 
 // sections
 type SectionShowType = 'input' | 'text' | 'code'
-type Section = {
-  name: string
-  content: string
-  type: 'input' | 'text' | 'code'
-}
 const sections: Ref<Section[]> = ref([])
-function sectionType(name: string): SectionShowType {
-  switch (name) {
+function sectionShowType(type: SectionType): SectionShowType {
+  switch (type) {
     case 'FILE':
+    case 'SKIPIF':
+    case 'CLEAN':
       return 'code'
+    case 'EXPECT':
+    case 'EXPECTF':
+    case 'EXPECTREGEX':
+      return 'text'
     default:
       return 'input'
   }
@@ -66,18 +79,42 @@ onMounted(async () => {
     return
   }
 
-  const sectionsData = rep.data.sections
-  for (const name of Object.keys(sectionsData)) {
-    sections.value.push({
-      name: name,
-      content: sectionsData[name],
-      type: sectionType(name)
-    })
-  }
-
+  sections.value = sectionMapToList(rep.data.sections)
   console.log(sections.value)
+  run()
 })
 
 // 执行
-function run() {}
+function run() {
+  console.log(sectionListToMap(sections.value))
+  return
+
+  updateResult('执行中...', '', '')
+  apiTestRunCustom({
+    src: src,
+    path: path,
+    sections: sectionListToMap(sections.value)
+  }).then(
+    (res) => {
+      if (res.code !== 0) {
+        updateResult('执行失败: error=' + res.error, '', '')
+        return
+      }
+      updateResult(res.data.info, res.data.output, res.data.expect)
+    },
+    () => {
+      updateResult('调用 url 失败', '', '')
+    }
+  )
+}
+
+// 执行结果
+const runResult = ref({
+  info: '',
+  output: '',
+  expect: ''
+})
+function updateResult(info: string, output: string, expect: string) {
+  runResult.value = { info, output, expect }
+}
 </script>

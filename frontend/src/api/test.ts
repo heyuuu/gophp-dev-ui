@@ -1,5 +1,6 @@
 import { apiGet, apiPost } from './base'
 import type { ApiResult } from './base'
+import type { SectionMap } from '@/models/test'
 
 type ApiTestPathListParam = {
   src: string
@@ -34,13 +35,12 @@ type ApiTestDetailParam = {
 type ApiTestDetailResult = ApiResult<{
   src: string
   path: string
-  sections: Sections
+  sections: SectionMap
 }>
 export const apiTestDetail = async function (params: ApiTestDetailParam) {
   return await apiGet<ApiTestDetailResult>('test/detail', params)
 }
 
-export type Sections = { [K: string]: string }
 export type RunStatus =
   | 'PASS'
   | 'BORK'
@@ -75,7 +75,7 @@ export const apiTestRun = async function (params: ApiTestRunParam) {
 type ApiTestRunCustomParam = {
   src: string
   path?: string
-  sections: Sections
+  sections: SectionMap
 }
 type ApiTestRunCustomResult = ApiTestRunResult
 export const apiTestRunCustom = async function (params: ApiTestRunCustomParam) {

@@ -22,12 +22,12 @@ const model = computed(() => ({
 const editorDom = ref(null) as Ref<unknown> as Ref<HTMLElement>
 let editor: monaco.editor.IStandaloneDiffEditor | null = null
 onMounted(() => {
-  console.log({ dom: editorDom.value })
-  console.log({
-    original: props.original,
-    modified: props.modified,
-    height: props.height
-  })
+  // console.log({ dom: editorDom.value })
+  // console.log({
+  //   original: props.original,
+  //   modified: props.modified,
+  //   height: props.height
+  // })
   editor = monaco.editor.createDiffEditor(editorDom.value, {
     theme: 'vs-dark',
     automaticLayout: true
@@ -37,7 +37,7 @@ onMounted(() => {
 
 // 更新文本
 function updateModel() {
-  console.log('updateModel')
+  // console.log('updateModel')
   if (editor) {
     editor.setModel({
       original: monaco.editor.createModel(model.value.original, 'text'),
