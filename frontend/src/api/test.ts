@@ -1,4 +1,4 @@
-import { request } from './base'
+import { apiGet, apiPost } from './base'
 import type { ApiResult } from './base'
 
 type ApiTestPathListParam = {
@@ -8,8 +8,8 @@ type ApiTestPathListResult = ApiResult<{
   count: number
   list: string[]
 }>
-export const ApiTestPathList = async function (params: ApiTestPathListParam) {
-  return await request<ApiTestPathListResult>('GET', 'test/path_list', params)
+export const apiTestPathList = async function (params: ApiTestPathListParam) {
+  return await apiGet<ApiTestPathListResult>('test/path_list', params)
 }
 
 type ApiTestListParam = {
@@ -23,8 +23,8 @@ type ApiTestListResult = ApiResult<{
   count: number
   total: number
 }>
-export const ApiTestList = async function (params: ApiTestListParam) {
-  return await request<ApiTestListResult>('GET', 'test/list', params)
+export const apiTestList = async function (params: ApiTestListParam) {
+  return await apiGet<ApiTestListResult>('test/list', params)
 }
 
 type ApiTestDetailParam = {
@@ -36,8 +36,8 @@ type ApiTestDetailResult = ApiResult<{
   path: string
   sections: Sections
 }>
-export const ApiTestDetail = async function (params: ApiTestListParam) {
-  return await request<ApiTestDetailResult>('GET', 'test/detail', params)
+export const apiTestDetail = async function (params: ApiTestDetailParam) {
+  return await apiGet<ApiTestDetailResult>('test/detail', params)
 }
 
 export type Sections = { [K: string]: string }
@@ -57,15 +57,19 @@ type ApiTestRunParam = {
   path: string
 }
 type ApiTestRunResult = ApiResult<{
-  src: string
-  path: string
-  sections: Sections
+  fileName: string
+  filePath: string
+
+  code: string
+  expect: string
+
   status: RunStatus
-  info: string
   output: string
+  info: string
+  useTime: number
 }>
-export const ApiTestRun = async function (params: ApiTestRunParam) {
-  return await request<ApiTestRunResult>('POST', 'test/detail', params)
+export const apiTestRun = async function (params: ApiTestRunParam) {
+  return await apiPost<ApiTestRunResult>('test/run', params)
 }
 
 type ApiTestRunCustomParam = {
@@ -74,16 +78,6 @@ type ApiTestRunCustomParam = {
   sections: Sections
 }
 type ApiTestRunCustomResult = ApiTestRunResult
-export const ApiTestRunCustom = async function (params: ApiTestRunCustomParam) {
-  return await request<ApiTestRunCustomResult>(
-    'GET',
-    'test/detail',
-    {
-      src: params.src,
-      path: params.path
-    },
-    {
-      sections: params.sections
-    }
-  )
+export const apiTestRunCustom = async function (params: ApiTestRunCustomParam) {
+  return await apiPost<ApiTestRunCustomResult>('test/run_custom', params)
 }

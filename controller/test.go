@@ -6,6 +6,7 @@ import (
 	"github.com/heyuuu/gophp/tests"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type testPathListParam struct {
@@ -128,16 +129,8 @@ func TestRun(c *gin.Context) ApiResult {
 	filePath := filepath.Join(p.Src, p.Path)
 
 	tc := tests.NewTestCase(fileName, filePath)
-	result := runTestCase(p.Src, tc)
-
-	return apiSucc(gin.H{
-		"fileName": tc.FileName(),
-		"filePath": tc.FilePath(),
-		"sections": tc.Sections(),
-		"result":   result.MainType(),
-		"info":     result.Info(),
-		"output":   result.Output(),
-	})
+	ret := runTestCaseAndReturn(p.Src, tc)
+	return apiSucc(ret)
 }
 
 type testRunCustomParams struct {
@@ -167,15 +160,8 @@ func TestRunCustom(c *gin.Context) ApiResult {
 	}
 
 	tc := tests.NewTestCaseParsed(fileName, filePath, p.Sections)
-	result := runTestCase(p.Src, tc)
-
-	return apiSucc(gin.H{
-		"fileName": tc.FileName(),
-		"filePath": tc.FilePath(),
-		"sections": tc.Sections(),
-		"result":   result.MainType(),
-		"output":   result.Output(),
-	})
+	ret := runTestCaseAndReturn(p.Src, tc)
+	return apiSucc(ret)
 }
 
 func createTempTestFile() (string, error) {
@@ -188,8 +174,36 @@ func createTempTestFile() (string, error) {
 	return fs.Name(), nil
 }
 
-func runTestCase(src string, tc *tests.TestCase) *tests.Result {
+func runTestCase(src string, tc *tests.TestCase) (result *tests.Result, log string) {
 	conf := tests.DefaultConfig()
 	conf.SrcDir = src
-	return tests.TestOneCase(conf, tc)
+
+	var buf strings.Builder
+	conf.Logger = tests.LoggerFunc(func(tc *tests.TestCase, event int, message string) {
+		if tc != nil {
+			buf.WriteString(message)
+		}
+	})
+
+	return tests.TestOneCase(conf, tc), buf.String()
+}
+
+func runTestCaseAndReturn(src string, tc *tests.TestCase) gin.H {
+	result, log := runTestCase(src, tc)
+	sections := tc.Sections()
+	return gin.H{
+		"fileName": tc.FileName(),
+		"filePath": tc.FilePath(),
+
+		// case
+		//"sections": tc.Sections(),
+		"code":   sections["FILE"],
+		"expect": sections["EXPECT"] + sections["EXPECTF"] + sections["EXPECTREGEX"],
+
+		// result
+		"status":  result.MainType(),
+		"output":  result.Output(),
+		"info":    result.Info() + "\n" + log,
+		"useTime": result.UseTime().Nanoseconds(),
+	}
 }

@@ -30,7 +30,7 @@
 import { onMounted, ref, watch, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
 import Editor from '@/components/Editor.vue'
-import { ApiTestDetail } from '@/api/test'
+import { apiTestDetail } from '@/api/test'
 import type { Sections } from '@/api/test'
 import { pa, sr } from 'element-plus/es/locales.mjs'
 
@@ -58,7 +58,7 @@ function sectionType(name: string): SectionShowType {
 
 // 初始化case数据
 onMounted(async () => {
-  const rep = await ApiTestDetail({
+  const rep = await apiTestDetail({
     src: src,
     path: path
   })

@@ -20,3 +20,21 @@ export async function request<T, D = any>(method: Method, url: string, params: a
   })
   return rep.data
 }
+
+export async function apiGet<T>(url: string, params: any) {
+  const rep = await axiosInstance.request<T>({
+    method: 'GET',
+    url: url,
+    params: params
+  })
+  return rep.data
+}
+
+export async function apiPost<T>(url: string, data: any) {
+  const rep = await axiosInstance.request<T>({
+    method: 'POST',
+    url: url,
+    data: data
+  })
+  return rep.data
+}

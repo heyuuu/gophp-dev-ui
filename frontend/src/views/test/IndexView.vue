@@ -31,7 +31,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, type Ref } from 'vue'
 import { Search } from '@element-plus/icons-vue'
-import { ApiTestPathList } from '@/api/test'
+import { apiTestPathList } from '@/api/test'
 import { pageTestList } from '@/router/routes'
 
 const src = ref('/Users/heyu/Code/src/php-7.4.33')
@@ -52,7 +52,7 @@ async function update() {
     return
   }
 
-  const rep = await ApiTestPathList({
+  const rep = await apiTestPathList({
     src: src.value
   })
   dirList.value = rep.data.list

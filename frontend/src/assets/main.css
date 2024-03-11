@@ -5,3 +5,23 @@
   justify-content: flex-end;
   width: 100%;
 }
+
+.el-table .primary-row {
+  --el-table-tr-bg-color: var(--el-color-primary-light-8);
+}
+.el-table .success-row {
+  --el-table-tr-bg-color: var(--el-color-success-light-8);
+}
+.el-table .warning-row {
+  --el-table-tr-bg-color: var(--el-color-warning-light-8);
+}
+.el-table .danger-row {
+  --el-table-tr-bg-color: var(--el-color-danger-light-8);
+}
+.el-table .info-row {
+  --el-table-tr-bg-color: var(--el-color-info-light-8);
+}
+
+.el-table .active-row {
+  color: var(--el-color-warning);
+}
