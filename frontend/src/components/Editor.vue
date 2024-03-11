@@ -2,15 +2,8 @@
     <div class="editor" ref="editorDom" :style="{height: props.height + 'px', width: '100%'}"></div>
 </template>
 
-<style scoped>
-.editor {
-    /* height: 20vh; */
-    /* width: 100%; */
-}
-</style>
-
 <script setup lang="ts">
-import { ref, defineProps, onMounted } from "vue";
+import { ref, onMounted } from "vue";
 import type { Ref } from "vue";
 import * as monaco from "monaco-editor";
 

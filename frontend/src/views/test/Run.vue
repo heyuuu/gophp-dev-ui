@@ -16,7 +16,7 @@
                 </el-form-item>
                 <!-- buttons -->
                 <el-form-item>
-                    <div style="display: flex; justify-content: flex-end; width: 100%;">
+                    <div class="flex-right">
                         <el-button type="primary" @click="run">Run</el-button>
                     </div>
                 </el-form-item>

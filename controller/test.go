@@ -135,6 +135,7 @@ func TestRun(c *gin.Context) ApiResult {
 		"filePath": tc.FilePath(),
 		"sections": tc.Sections(),
 		"result":   result.MainType(),
+		"info":     result.Info(),
 		"output":   result.Output(),
 	})
 }

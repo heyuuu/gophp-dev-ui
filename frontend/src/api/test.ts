@@ -44,6 +44,7 @@ export const ApiTestDetail = async function(params:ApiTestListParam) {
 }
 
 export type Sections = {[K:string]: string}
+export type RunStatus = 'PASS' | 'BORK' | 'FAIL' | 'WARN' | 'LEAK' | 'XFAIL' | 'XLEAK' | 'SKIP' | 'SLOW'
 
 type ApiTestRunParam = {
     src: string,
@@ -53,6 +54,9 @@ type ApiTestRunResult = ApiResult<{
     src: string,
     path: string,
     sections: Sections,
+    status: RunStatus,
+    info: string,
+    output: string,
 }>
 export const ApiTestRun = async function(params: ApiTestRunParam) {
     return await request<ApiTestRunResult>('POST', "test/detail", params)
