@@ -18,7 +18,7 @@
         <el-form-item>
           <div class="flex-right">
             <div class="stat-line">{{ statLine }}</div>
-            <el-button type="">重试当前测试</el-button>
+            <el-button @click="retryShowTests">重试当前测试</el-button>
           </div>
         </el-form-item>
       </el-form>
@@ -107,7 +107,6 @@ import type { RunStatus } from '@/api/test'
 import { clipboardWriteText } from '@/utils/utils'
 import { ElMessage } from 'element-plus'
 import DiffEditor from '@/components/DiffEditor.vue'
-import { off } from 'process'
 
 // uri 参数
 const route = useRoute()
@@ -149,7 +148,7 @@ type Test = {
 }
 
 const tests: Ref<Test[]> = ref([])
-const waitintIndexes: Ref<number[]> = ref([])
+const waitingIndexes: Ref<number[]> = ref([])
 const statusCount = ref({
   WAITING: 0,
   RUNNING: 0,
@@ -189,8 +188,8 @@ onMounted(async () => {
       expect: ''
     }
   })
-  waitintIndexes.value = tests.value.map((test) => test.idx)
-  statusCount.value.WAITING = waitintIndexes.value.length
+  waitingIndexes.value = tests.value.map((test) => test.idx)
+  statusCount.value.WAITING = waitingIndexes.value.length
 
   runNext() // 触发执行 loop
 })
@@ -241,13 +240,22 @@ function runTest(index: number) {
 
 // 遍历待处理case
 const runNext = () => {
-  while (statusCount.value.RUNNING < 10 && waitintIndexes.value.length > 0) {
-    const index = waitintIndexes.value.shift()
+  while (statusCount.value.RUNNING < 10 && waitingIndexes.value.length > 0) {
+    const index = waitingIndexes.value.shift()
     console.log({ index })
     if (index !== undefined) {
       runTest(index)
     }
   }
+}
+
+// 重试当前展示的case列表
+function retryShowTests() {
+  console.log(1)
+  for (const test of showTests.value) {
+    waitingIndexes.value.push(test.idx)
+  }
+  runNext()
 }
 
 // 状态栏
