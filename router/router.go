@@ -3,6 +3,8 @@ package router
 import (
 	"github.com/gin-gonic/gin"
 	"gophp-dev-ui/controller"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"path/filepath"
 )
@@ -28,6 +30,9 @@ func InitRouter(r *gin.Engine) {
 		apiGroup.POST("/test/run", controller.ApiHandler(controller.TestRun))
 		apiGroup.POST("/test/run_custom", controller.ApiHandler(controller.TestRunCustom))
 	}
+
+	// pprof
+	r.GET("/debug/pprof/*any", gin.WrapH(http.DefaultServeMux))
 }
 
 func isFileExist(path string) bool {
