@@ -11,7 +11,7 @@
             <el-input v-model="sec.text" type="textarea"></el-input>
           </template>
           <template v-else>
-            <CodeEditor :value="sec.text" :height="400" />
+            <CodeEditor v-model="sec.text" :height="400" />
           </template>
         </el-form-item>
         <!-- buttons -->
@@ -86,9 +86,6 @@ onMounted(async () => {
 
 // 执行
 function run() {
-  console.log(sectionListToMap(sections.value))
-  return
-
   updateResult('执行中...', '', '')
   apiTestRunCustom({
     src: src,
