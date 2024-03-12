@@ -3,7 +3,7 @@ testdata_dir = "testdata"
 tmp_dir = "gophp-dev-ui/tmp"
 
 [build]
-  args_bin = []
+  args_bin = ['-w', 'gophp-dev-ui']
   bin = "./gophp-dev-ui/tmp/main"
   cmd = "cd gophp-dev-ui && go build -o ./tmp/main"
   delay = 1000
