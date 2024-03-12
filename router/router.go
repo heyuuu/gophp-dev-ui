@@ -24,6 +24,8 @@ func InitRouter(r *gin.Engine) {
 	// api
 	apiGroup := r.Group("api")
 	{
+		apiGroup.POST("/run/code", controller.ApiHandler(controller.ApiRunCode))
+
 		apiGroup.GET("/test/path_list", controller.ApiHandler(controller.TestPathList))
 		apiGroup.GET("/test/list", controller.ApiHandler(controller.TestList))
 		apiGroup.GET("/test/detail", controller.ApiHandler(controller.TestDetail))
