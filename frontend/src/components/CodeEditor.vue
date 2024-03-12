@@ -5,7 +5,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
 import type { Ref } from 'vue'
-import * as monaco from 'monaco-editor'
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
 
 const model = defineModel<string>()
 const props = defineProps<{

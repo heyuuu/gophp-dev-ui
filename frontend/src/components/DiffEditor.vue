@@ -5,7 +5,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import type { Ref } from 'vue'
-import * as monaco from 'monaco-editor'
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
+import 'monaco-editor/esm/vs/basic-languages/php/php.contribution'
 
 const props = defineProps({
   original: { type: String, required: true },
