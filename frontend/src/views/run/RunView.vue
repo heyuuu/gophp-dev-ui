@@ -1,5 +1,5 @@
 <template>
-  <el-row class="main">
+  <el-row class="main" @keyup.ctrl.enter="runCode">
     <!-- 代码栏 -->
     <el-col :span="6" class="code-pane">
       <!-- 自动更新按钮 -->
@@ -8,6 +8,9 @@
 
       <!-- 代码编辑器 -->
       <CodeEditor v-model="code" height="80vh" />
+
+      <!-- 主动运行按钮 -->
+      <el-button type="primary" size="default" @click="runCode">Run</el-button>
 
       <!-- 错误信息 -->
       <div>
@@ -47,9 +50,10 @@
 </style>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import type { Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 
 import { apiRunCode } from '@/api/run'
 import CodeEditor from '@/components/CodeEditor.vue'
@@ -57,13 +61,30 @@ import DiffEditor from '@/components/DiffEditor.vue'
 import ResultPane from './ResultPane.vue'
 import type { Item as ResultItem } from './ResultPane.vue'
 
+// 从路由获取参数
 const route = useRoute()
-const router = useRouter()
 const code = ref((route.query.code as string) || '')
-watch(code, () => {
-  router.push({
-    query: { code: code.value }
-  })
+const autoRefresh = ref(!!route.query.refresh) // 自动刷新开关
+const openDiffMode = ref(!!route.query.diff) // 对比模式开关
+
+// 更新路由
+const query = computed(() => {
+  const qs: Record<string, string> = {}
+  if (code.value !== '') {
+    qs['code'] = code.value
+  }
+  if (autoRefresh.value) {
+    qs['refresh'] = '1'
+  }
+  if (openDiffMode.value) {
+    qs['diff'] = '1'
+  }
+  return qs
+})
+
+const router = useRouter()
+watch(query, () => {
+  router.push({ query: query.value })
 })
 
 // 执行结果
@@ -85,6 +106,16 @@ function updateResult(res: ResultItem[], err: string) {
       runRawResult.value = item.content
     }
   })
+
+  // 触发弹窗
+  if (res.length > 0 && err == '') {
+    showMessage('success', '请求成功')
+  } else if (err) {
+    showMessage('error', err)
+  }
+}
+function showMessage(type: 'success' | 'error', message: string) {
+  ElMessage({ message, type, grouping: true, offset: 8 })
 }
 
 // 调用 Api 执行代码
@@ -123,9 +154,19 @@ function runCode() {
 watch(code, runCode)
 onMounted(runCode)
 
-// 对比模式
-const openDiffMode = ref(false)
-
 // 自动刷新
-const autoRefresh = ref(false)
+let autoRefreshId = 0
+function updateAutoRefresh() {
+  // 强制先清理定时任务
+  if (autoRefreshId !== 0) {
+    clearInterval(autoRefreshId)
+    autoRefreshId = 0
+  }
+  // 开启定时任务
+  if (autoRefresh.value) {
+    autoRefreshId = setInterval(runCode, 2000)
+  }
+}
+watch(autoRefresh, updateAutoRefresh)
+onMounted(updateAutoRefresh)
 </script>
