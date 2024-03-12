@@ -1,32 +1,34 @@
 <template>
-  <div class="editor" ref="editorDom" :style="{ height: props.height + 'px', width: '100%' }"></div>
+  <div class="editor" ref="editorDom" :style="{ height: height, width: '100%' }"></div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import type { Ref } from 'vue'
 import * as monaco from 'monaco-editor'
 
 const model = defineModel<string>()
+const props = defineProps<{
+  height: number | string
+}>()
 
-const props = defineProps({
-  value: { type: String, default: '' },
-  height: { type: Number, default: 200 }
+const height = computed(() => {
+  const h = props.height
+  if (typeof h == 'number') {
+    return h + 'px'
+  } else if (typeof h == 'string' && h !== '') {
+    return h
+  } else {
+    return '200px'
+  }
 })
 
 // 编辑器绑定 dom
 const editorDom = ref(null) as Ref<unknown> as Ref<HTMLElement>
 let editor: monaco.editor.IStandaloneCodeEditor | null = null
 onMounted(() => {
-  // console.log({ dom: editorDom.value })
-  // console.log({
-  //   value: props.value,
-  //   height: props.height
-  // })
-
   // 初始化编辑器
   editor = monaco.editor.create(editorDom.value, {
-    value: props.value,
     language: 'php',
     theme: 'vs-dark',
     automaticLayout: true
