@@ -8,14 +8,12 @@ import (
 	"github.com/heyuuu/gophp/compile/ast"
 	"github.com/heyuuu/gophp/compile/parser"
 	"github.com/heyuuu/gophp/kits/vardumper"
-	"github.com/heyuuu/gophp/php"
 	_ "github.com/heyuuu/gophp/php/boot"
 	"github.com/heyuuu/gophp/php/perr"
+	"github.com/heyuuu/gophp/sapi"
 	"log"
-	"os"
 	"os/exec"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -48,7 +46,6 @@ const (
 	TypeAstPrint = "AST-print"
 	TypeRun      = "Run"
 	TypeRawRun   = "Run-Raw"
-	TypeDiffRun  = "Run-Diff"
 )
 
 type ApiTypeResult struct {
@@ -80,50 +77,32 @@ func parseCode(code string) (result []ApiTypeResult, err error) {
 	rawOutput := rawRunCode(code)
 	result = append(result, ApiTypeResult{Type: TypeRawRun, Content: rawOutput})
 
-	// diff run
-	diff := diffOutput(output, rawOutput)
-	result = append(result, ApiTypeResult{Type: TypeDiffRun, Content: diff})
-
 	return
 }
 
-func runCode(code string) (output string) {
-	var buf strings.Builder
-	defer func() {
-		if e := recover(); e != nil && e != perr.ErrExit {
-			buf.WriteString(fmt.Sprintf(">>> Execute panic: %v", e))
-
-			// 打印堆栈
-			const size = 64 << 10
-			stack := make([]byte, size)
-			stack = stack[:runtime.Stack(stack, false)]
-			log.Printf(">>> Execute panic: %v\n%s", e, stack)
-		}
-
-		output = buf.String()
-	}()
-
-	engine := php.NewEngine()
-	engine.BaseCtx().INI().AppendIniEntries("error_reporting=" + strconv.Itoa(int(perr.E_ALL)))
-	err := engine.Start()
-	if err != nil {
-		buf.WriteString("engine start failed: " + err.Error())
-		return
+func runCode(code string) string {
+	if strings.HasPrefix(code, "<?php\n") {
+		code = code[6:]
+	} else {
+		code = "?>" + code
 	}
 
-	ctx := engine.NewContext(nil, nil)
-	engine.HandleContext(ctx, func(ctx *php.Context) {
-		ctx.OG().PushHandler(&buf)
+	cmd := sapi.Command(
+		// ini
+		"-d", "error_reporting="+strconv.Itoa(int(perr.E_ALL)),
+		// code
+		"-r", code,
+	)
 
-		fileHandle := php.NewFileHandleByCommandLine(code)
-		_, err = php.ExecuteScript(ctx, fileHandle, false)
+	var buf strings.Builder
+	cmd.Stdout = &buf
+	cmd.Stderr = &buf
 
-		if err != nil {
-			buf.WriteString("Execute failed: " + err.Error())
-		}
-	})
-
-	return
+	err := cmd.RunSafe()
+	if err != nil {
+		buf.WriteString(">>> Execute failed: " + err.Error())
+	}
+	return buf.String()
 }
 
 func rawRunCode(code string) string {
@@ -142,36 +121,6 @@ func rawRunCode(code string) string {
 	output = regexp.MustCompile(`in Command line code on line \d+`).ReplaceAllString(output, "in Command line code on line 0")
 
 	return output
-}
-
-func diffOutput(text1 string, text2 string) string {
-	f1, err := createTmpFile(text1)
-	if err != nil {
-		return err.Error()
-	}
-
-	f2, err := createTmpFile(text2)
-	if err != nil {
-		return err.Error()
-	}
-
-	output, err := runCommand(5*time.Second, "diff", "-a", f1, f2)
-	if output == "" && err != nil {
-		return "run diff command failed: " + err.Error()
-	}
-
-	return output
-}
-
-func createTmpFile(content string) (string, error) {
-	f, err := os.CreateTemp(os.TempDir(), "gophp-")
-	if err != nil {
-		return "", fmt.Errorf("create tmp file failed: %w", err)
-	}
-	name := f.Name()
-	f.WriteString(content)
-	f.Close()
-	return name, nil
 }
 
 func runCommand(timeout time.Duration, name string, args ...string) (string, error) {
