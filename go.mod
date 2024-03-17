@@ -1,6 +1,6 @@
 module gophp-dev-ui
 
-go 1.22.0
+go 1.21
 
 require (
 	github.com/gin-gonic/gin v1.9.1
