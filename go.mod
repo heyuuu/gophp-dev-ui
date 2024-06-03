@@ -7,9 +7,7 @@ require (
 	github.com/heyuuu/gophp v0.0.0
 )
 
-replace (
-	github.com/heyuuu/gophp => ../gophp
-)
+replace github.com/heyuuu/gophp => ../gophp
 
 require (
 	github.com/bytedance/sonic v1.11.2 // indirect
