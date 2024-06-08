@@ -1,5 +1,19 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+// menu
+type MenuItem = {
+  path: string
+  name: string
+  children?: MenuItem[]
+}
+
+export const menuItems: MenuItem[] = [
+  { path: '/', name: '首页' },
+  { path: '/run', name: '运行代码' },
+  { path: '/test', name: '运行Case' }
+]
+
+// router
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [

@@ -5,15 +5,31 @@
     mode="horizontal"
     @select="handleSelect"
   >
-    <el-menu-item index="/">首页</el-menu-item>
-    <el-menu-item index="/run">运行代码</el-menu-item>
-    <el-menu-item index="/test">运行Case</el-menu-item>
+    <template v-for="item in menuItems">
+      <!-- 折叠菜单项 -->
+      <template v-if="item.children">
+        <el-sub-menu :index="item.path" :key="item.path">
+          <template #title>{{ item.name }}</template>
+          <el-menu-item
+            v-for="subItem in item.children"
+            :index="subItem.path"
+            :key="subItem.path"
+            >{{ subItem.name }}</el-menu-item
+          >
+        </el-sub-menu>
+      </template>
+      <!-- 单独菜单项 -->
+      <template v-else>
+        <el-menu-item :index="item.path" :key="item.path">{{ item.name }}</el-menu-item>
+      </template>
+    </template>
   </el-menu>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { menuItems } from '@/router'
 
 const router = useRouter()
 const route = useRoute()
