@@ -23,7 +23,7 @@ type runCodeParam struct {
 	Code string `form:"code" binding:"required"`
 }
 
-func ApiRunCode(c *gin.Context) ApiResult {
+func ApiRunCode(c *gin.Context) any {
 	var err error
 
 	var p runCodeParam

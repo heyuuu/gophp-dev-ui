@@ -11,11 +11,13 @@ import (
 )
 
 func InitRouter(r *gin.Engine, staticFs embed.FS) {
-	// static
+	// 静态文件(指向 staticFs 对应文件，若文件不存在则指向 index.html)
 	r.GET("/static/*filepath", func(c *gin.Context) {
 		handleStatic(c, staticFs, c.Param("filepath"))
 	})
-	r.GET("/", controller.Index)
+	r.GET("/", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/static")
+	})
 
 	// api
 	apiGroup := r.Group("api")

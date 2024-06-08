@@ -37,9 +37,20 @@ func apiError(err error) ApiResult {
 	return apiFail(code, err.Error())
 }
 
-func ApiHandler(h func(c *gin.Context) ApiResult) gin.HandlerFunc {
+func wrapApiResult(v any) ApiResult {
+	switch value := v.(type) {
+	case ApiResult:
+		return value
+	case error:
+		return apiError(value)
+	default:
+		return apiSucc(value)
+	}
+}
+
+func ApiHandler(h func(c *gin.Context) any) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		r := h(c)
+		r := wrapApiResult(h(c))
 		c.JSON(http.StatusOK, r)
 		return
 	}

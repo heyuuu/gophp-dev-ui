@@ -13,7 +13,7 @@ type testPathListParam struct {
 	Src string `form:"src" binding:"required"`
 }
 
-func TestPathList(c *gin.Context) ApiResult {
+func TestPathList(c *gin.Context) any {
 	var err error
 
 	var p testPathListParam
@@ -37,7 +37,7 @@ type testListParam struct {
 	Limit  int    `form:"limit"`
 }
 
-func TestList(c *gin.Context) ApiResult {
+func TestList(c *gin.Context) any {
 	var err error
 
 	var p testListParam
@@ -90,7 +90,7 @@ type testDetailParam struct {
 	Path string `form:"path" binding:"required"`
 }
 
-func TestDetail(c *gin.Context) ApiResult {
+func TestDetail(c *gin.Context) any {
 	var err error
 	var p testDetailParam
 	if err = c.ShouldBindQuery(&p); err != nil {
@@ -118,7 +118,7 @@ type testRunParams struct {
 	Path string `form:"path" binding:"required"`
 }
 
-func TestRun(c *gin.Context) ApiResult {
+func TestRun(c *gin.Context) any {
 	var err error
 	var p testRunParams
 	if err = c.ShouldBindJSON(&p); err != nil {
@@ -139,7 +139,7 @@ type testRunCustomParams struct {
 	Sections map[string]string `form:"sections" binding:"required"`
 }
 
-func TestRunCustom(c *gin.Context) ApiResult {
+func TestRunCustom(c *gin.Context) any {
 	var err error
 	var p testRunCustomParams
 	if err = c.ShouldBindJSON(&p); err != nil {
