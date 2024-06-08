@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
+import MainHander from '@/components/layout/MainHeader.vue'
 </script>
 
 <template>
-  <RouterView />
+  <el-container>
+    <el-header style="padding: 0">
+      <MainHander />
+    </el-header>
+    <el-main>
+      <RouterView />
+    </el-main>
+  </el-container>
 </template>
