@@ -4,7 +4,7 @@ import (
 	"embed"
 	"flag"
 	"github.com/gin-gonic/gin"
-	"gophp-dev-ui/router"
+	"gophp-dev-ui/pkg/router"
 	"log"
 	"strconv"
 )

@@ -18,16 +18,16 @@ func TestPathList(c *gin.Context) any {
 
 	var p testPathListParam
 	if err = c.ShouldBindQuery(&p); err != nil {
-		return apiError(err)
+		return err
 	}
 
 	// testCases
 	testPaths := tests.FindTestPathsInSrcDir(p.Src, true)
 
-	return apiSucc(gin.H{
+	return gin.H{
 		"list":  testPaths,
 		"count": len(testPaths),
-	})
+	}
 }
 
 type testListParam struct {
@@ -42,7 +42,7 @@ func TestList(c *gin.Context) any {
 
 	var p testListParam
 	if err = c.ShouldBindQuery(&p); err != nil {
-		return apiError(err)
+		return err
 	}
 
 	var testCases []*tests.TestCase
@@ -53,7 +53,7 @@ func TestList(c *gin.Context) any {
 		testCases, err = tests.FindTestCases(p.Src, dir)
 	}
 	if err != nil {
-		return apiError(err)
+		return err
 	}
 
 	// offset && limit
@@ -76,13 +76,13 @@ func TestList(c *gin.Context) any {
 		testNames[i] = tc.FileName()
 	}
 
-	return apiSucc(gin.H{
+	return gin.H{
 		"list":   testNames,
 		"offset": p.Offset,
 		"limit":  p.Limit,
 		"total":  total,
 		"count":  count,
-	})
+	}
 }
 
 type testDetailParam struct {
@@ -94,7 +94,7 @@ func TestDetail(c *gin.Context) any {
 	var err error
 	var p testDetailParam
 	if err = c.ShouldBindQuery(&p); err != nil {
-		return apiError(err)
+		return err
 	}
 
 	fileName := p.Path
@@ -103,14 +103,14 @@ func TestDetail(c *gin.Context) any {
 	tc := tests.NewTestCase(fileName, filePath)
 	sections, err := tc.Parse()
 	if err != nil {
-		return apiError(fmt.Errorf("parse test-case file failed: %w", err))
+		return fmt.Errorf("parse test-case file failed: %w", err)
 	}
 
-	return apiSucc(gin.H{
+	return gin.H{
 		"src":      p.Src,
 		"path":     p.Path,
 		"sections": sections,
-	})
+	}
 }
 
 type testRunParams struct {
@@ -122,7 +122,7 @@ func TestRun(c *gin.Context) any {
 	var err error
 	var p testRunParams
 	if err = c.ShouldBindJSON(&p); err != nil {
-		return apiError(err)
+		return err
 	}
 
 	fileName := p.Path
@@ -130,7 +130,7 @@ func TestRun(c *gin.Context) any {
 
 	tc := tests.NewTestCase(fileName, filePath)
 	ret := runTestCaseAndReturn(p.Src, tc)
-	return apiSucc(ret)
+	return ret
 }
 
 type testRunCustomParams struct {
@@ -143,7 +143,7 @@ func TestRunCustom(c *gin.Context) any {
 	var err error
 	var p testRunCustomParams
 	if err = c.ShouldBindJSON(&p); err != nil {
-		return apiError(err)
+		return err
 	}
 
 	var fileName, filePath string
@@ -153,7 +153,7 @@ func TestRunCustom(c *gin.Context) any {
 	} else {
 		filePath, err = createTempTestFile()
 		if err != nil {
-			return apiError(err)
+			return err
 		}
 
 		fileName = filepath.Base(filePath)
@@ -161,7 +161,7 @@ func TestRunCustom(c *gin.Context) any {
 
 	tc := tests.NewTestCaseParsed(fileName, filePath, p.Sections)
 	ret := runTestCaseAndReturn(p.Src, tc)
-	return apiSucc(ret)
+	return ret
 }
 
 func createTempTestFile() (string, error) {

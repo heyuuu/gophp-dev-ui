@@ -4,8 +4,10 @@ go 1.21
 
 require (
 	github.com/gin-gonic/gin v1.9.1
+	github.com/heyuuu/gophp v0.2.0
 )
 
+replace github.com/heyuuu/gophp => ../gophp
 
 require (
 	github.com/bytedance/sonic v1.11.2 // indirect

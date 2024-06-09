@@ -3,7 +3,7 @@ package router
 import (
 	"embed"
 	"github.com/gin-gonic/gin"
-	"gophp-dev-ui/controller"
+	"gophp-dev-ui/pkg/controller"
 	"net/http"
 	_ "net/http/pprof"
 	"path"
@@ -22,7 +22,8 @@ func InitRouter(r *gin.Engine, staticFs embed.FS) {
 	// api
 	apiGroup := r.Group("api")
 	{
-		apiGroup.POST("/run/code", controller.ApiHandler(controller.ApiRunCode))
+		apiGroup.POST("/run/config", controller.ApiHandler(controller.RunConfigHandler))
+		apiGroup.POST("/run/code", controller.ApiHandler(controller.RunCodeHandler))
 
 		apiGroup.GET("/test/path_list", controller.ApiHandler(controller.TestPathList))
 		apiGroup.GET("/test/list", controller.ApiHandler(controller.TestList))

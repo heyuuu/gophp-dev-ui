@@ -19,68 +19,85 @@ import (
 	"time"
 )
 
+type RunType = string
+
+const (
+	RunTypeAst      RunType = "AST"
+	RunTypeAstPrint RunType = "AST-print"
+	RunTypeExec     RunType = "Execute"
+	RunTypeExecRaw  RunType = "Execute-Raw"
+)
+
+var allRunTypes = []RunType{
+	RunTypeAst,
+	RunTypeAstPrint,
+	RunTypeExec,
+	RunTypeExecRaw,
+}
+
+// api: /run/config
+func RunConfigHandler(c *gin.Context) any {
+	return gin.H{
+		"types": allRunTypes,
+	}
+}
+
+// api: /run/code
+func RunCodeHandler(c *gin.Context) any {
+	// 获取请求参数
+	var p runCodeParam
+	if err := c.ShouldBind(&p); err != nil {
+		return err
+	}
+
+	// 执行代码，并返回结果
+	result, err := runCode(p.Code)
+	if err != nil {
+		return err
+	}
+
+	return gin.H{
+		"result": result,
+	}
+}
+
 type runCodeParam struct {
 	Code string `form:"code" binding:"required"`
 }
 
-func ApiRunCode(c *gin.Context) any {
-	var err error
-
-	var p runCodeParam
-	if err = c.ShouldBind(&p); err != nil {
-		return apiError(err)
-	}
-
-	result, err := parseCode(p.Code)
-	if err != nil {
-		return apiError(err)
-	}
-
-	return apiSucc(gin.H{
-		"result": result,
-	})
-}
-
-const (
-	TypeAst      = "AST"
-	TypeAstPrint = "AST-print"
-	TypeRun      = "Run"
-	TypeRawRun   = "Run-Raw"
-)
-
-type ApiTypeResult struct {
+type RunResultItem struct {
 	Type    string `json:"type"`
 	Content string `json:"content"`
 }
 
-func parseCode(code string) (result []ApiTypeResult, err error) {
-	// Ast
+func runCode(code string) (result []RunResultItem, err error) {
+	// parse-ast
 	astNodes, err := parser.ParseCode(code)
 	if err != nil {
 		return nil, fmt.Errorf("ast parse fail: %w", err)
 	}
 
 	astDump := vardumper.Sprint(astNodes)
-	result = append(result, ApiTypeResult{Type: TypeAst, Content: astDump})
+	result = append(result, RunResultItem{Type: RunTypeAst, Content: astDump})
 
 	astPrint, err := ast.PrintFile(astNodes)
 	if err != nil {
 		return nil, fmt.Errorf("ast print fail: %w", err)
 	}
-	result = append(result, ApiTypeResult{Type: TypeAstPrint, Content: astPrint})
+	result = append(result, RunResultItem{Type: RunTypeAstPrint, Content: astPrint})
 
 	// run code
-	output := runCode(code)
-	result = append(result, ApiTypeResult{Type: TypeRun, Content: output})
+	output := executeCode(code)
+	result = append(result, RunResultItem{Type: RunTypeExec, Content: output})
 
 	// raw run code
-	rawOutput := rawRunCode(code)
-	result = append(result, ApiTypeResult{Type: TypeRawRun, Content: rawOutput})
+	rawOutput := executeCodeRaw(code)
+	result = append(result, RunResultItem{Type: RunTypeExecRaw, Content: rawOutput})
 
 	return
 }
 
-func runCode(code string) string {
+func executeCode(code string) string {
 	if strings.HasPrefix(code, "<?php\n") {
 		code = code[6:]
 	} else {
@@ -105,7 +122,7 @@ func runCode(code string) string {
 	return buf.String()
 }
 
-func rawRunCode(code string) string {
+func executeCodeRaw(code string) string {
 	if strings.HasPrefix(code, "<?php\n") {
 		code = code[6:]
 	} else {
