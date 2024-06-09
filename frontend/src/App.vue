@@ -8,7 +8,7 @@ import MainHander from '@/components/layout/MainHeader.vue'
     <el-header style="padding: 0">
       <MainHander />
     </el-header>
-    <el-main>
+    <el-main style="padding: 10px">
       <RouterView />
     </el-main>
   </el-container>

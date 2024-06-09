@@ -1,5 +1,6 @@
 import axios from 'axios'
-import type { Method, AxiosResponse } from 'axios'
+import type { Method } from 'axios'
+import { ElMessage } from 'element-plus'
 
 export const axiosInstance = axios.create({
   baseURL: '/api'
@@ -11,30 +12,46 @@ export type ApiResult<T = any> = {
   data: T
 }
 
-export async function request<T, D = any>(method: Method, url: string, params: any, data?: D) {
-  const rep = await axiosInstance.request<T>({
-    method: method,
-    url: url,
-    params: params,
-    data: data
+const showApiFailMessage = (errMsg: string) => {
+  ElMessage({
+    type: 'error',
+    message: '请求失败: ' + errMsg,
+    grouping: true,
+    offset: 8
   })
-  return rep.data
+}
+
+export async function apiRequest<T>(
+  method: Method,
+  url: string,
+  params: any,
+  data?: any
+): Promise<T> {
+  const rep = await axiosInstance
+    .request<ApiResult<T>>({
+      method: method,
+      url: url,
+      params: params,
+      data: data
+    })
+    .catch((err) => {
+      showApiFailMessage(`请求错误: ${err}`)
+      throw err
+    })
+
+  const result = rep.data
+  if (result.code !== 0) {
+    showApiFailMessage(result.error)
+    throw new Error(result.error)
+  }
+
+  return result.data
 }
 
 export async function apiGet<T>(url: string, params: any) {
-  const rep = await axiosInstance.request<T>({
-    method: 'GET',
-    url: url,
-    params: params
-  })
-  return rep.data
+  return apiRequest<T>('GET', url, params)
 }
 
 export async function apiPost<T>(url: string, data: any) {
-  const rep = await axiosInstance.request<T>({
-    method: 'POST',
-    url: url,
-    data: data
-  })
-  return rep.data
+  return apiRequest<T>('POST', url, {}, data)
 }

@@ -6,6 +6,7 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import type { Ref } from 'vue'
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
+import 'monaco-editor/esm/vs/basic-languages/php/php.contribution'
 
 const model = defineModel<string>()
 const props = defineProps<{

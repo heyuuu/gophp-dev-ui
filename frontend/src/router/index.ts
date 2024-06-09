@@ -9,7 +9,7 @@ type MenuItem = {
 
 export const menuItems: MenuItem[] = [
   { path: '/', name: '首页' },
-  { path: '/run', name: '运行代码' },
+  { path: '/run/code', name: '运行Code' },
   { path: '/test', name: '运行Case' }
 ]
 
@@ -23,9 +23,9 @@ const router = createRouter({
       component: () => import('../views/HomeView.vue')
     },
     {
-      path: '/run/',
+      path: '/run/code',
       name: 'run',
-      component: () => import('../views/run/RunView.vue')
+      component: () => import('../views/run/RunCodeView.vue')
     },
     {
       path: '/test/',

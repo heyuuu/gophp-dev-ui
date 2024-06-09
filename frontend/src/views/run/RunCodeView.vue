@@ -50,9 +50,8 @@
 </style>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import type { Ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 
 import { apiRunCode } from '@/api/run'
@@ -60,31 +59,25 @@ import CodeEditor from '@/components/CodeEditor.vue'
 import DiffEditor from '@/components/DiffEditor.vue'
 import ResultPane from './ResultPane.vue'
 import type { Item as ResultItem } from './ResultPane.vue'
+import { useRouteHash } from '@/utils/hash'
 
 // 从路由获取参数
-const route = useRoute()
-const code = ref((route.query.code as string) || '')
-const autoRefresh = ref(!!route.query.refresh) // 自动刷新开关
-const openDiffMode = ref(!!route.query.diff) // 对比模式开关
+const code = ref('')
+const autoRefresh = ref(false) // 自动刷新开关
+const openDiffMode = ref(false) // 对比模式开关
 
-// 更新路由
-const query = computed(() => {
-  const qs: Record<string, string> = {}
-  if (code.value !== '') {
-    qs['code'] = code.value
-  }
-  if (autoRefresh.value) {
-    qs['refresh'] = '1'
-  }
-  if (openDiffMode.value) {
-    qs['diff'] = '1'
-  }
-  return qs
-})
-
-const router = useRouter()
-watch(query, () => {
-  router.push({ query: query.value })
+// 参数同步到路由上
+useRouteHash({
+  init: (v) => {
+    code.value = (v.code as string) || ''
+    autoRefresh.value = !!v.autoRefresh
+    openDiffMode.value = !!v.openDiffMode
+  },
+  calc: () => ({
+    code: code.value,
+    autoRefresh: autoRefresh.value,
+    openDiffMode: openDiffMode.value
+  })
 })
 
 // 执行结果
@@ -106,13 +99,6 @@ function updateResult(res: ResultItem[], err: string) {
       runRawResult.value = item.content
     }
   })
-
-  // 触发弹窗
-  if (res.length > 0 && err == '') {
-    showMessage('success', '请求成功')
-  } else if (err) {
-    showMessage('error', err)
-  }
 }
 function showMessage(type: 'success' | 'error', message: string) {
   ElMessage({ message, type, grouping: true, offset: 8 })
@@ -121,33 +107,26 @@ function showMessage(type: 'success' | 'error', message: string) {
 // 调用 Api 执行代码
 let runIndex = 0
 function runCode() {
-  if (code.value == '') {
+  if (code.value === '') {
     updateResult([], '')
     return
   }
 
   runIndex++
   const currIndex = runIndex
-
-  apiRunCode({
-    code: code.value
-  }).then(
+  apiRunCode({ code: code.value }).then(
     (res) => {
       if (currIndex !== runIndex) {
         return
       }
-      if (res.code !== 0) {
-        updateResult([], '请求失败: ' + res.error)
-        return
-      }
-
-      updateResult(res.data.result, '')
+      showMessage('success', '请求成功')
+      updateResult(res.result, '')
     },
-    () => {
+    (err) => {
       if (currIndex !== runIndex) {
         return
       }
-      updateResult([], '请求失败，确认服务是否可用')
+      updateResult([], `请求失败: ${err}`)
     }
   )
 }
