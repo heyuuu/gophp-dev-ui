@@ -22,10 +22,10 @@ import (
 type RunType = string
 
 const (
-	RunTypeAst      RunType = "AST"
-	RunTypeAstPrint RunType = "AST-print"
-	RunTypeExec     RunType = "Execute"
-	RunTypeExecRaw  RunType = "Execute-Raw"
+	RunTypeAst      RunType = "ast"
+	RunTypeAstPrint RunType = "ast-print"
+	RunTypeExec     RunType = "execute"
+	RunTypeExecRaw  RunType = "execute-raw"
 )
 
 var allRunTypes = []RunType{

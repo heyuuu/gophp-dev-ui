@@ -1,16 +1,16 @@
 import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-export function useRouteHash(options: {
-  init?: (v: Record<string, any>) => void
-  calc: () => Record<string, any>
+export function useRouteHash<T extends Record<string, any>>(options: {
+  init?: (v: T) => void
+  calc: () => T
 }) {
   const route = useRoute()
   const router = useRouter()
 
   // 从路由获取参数
   if (options.init) {
-    const initData = decodeHash(route.hash)
+    const initData = decodeHash(route.hash) as T
     options.init(initData)
   }
 
