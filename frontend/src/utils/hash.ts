@@ -1,23 +1,26 @@
-import { computed, watch } from 'vue'
+import { computed, watch, type Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-export function useRouteHash<T extends Record<string, any>>(options: {
-  init?: (v: T) => void
-  calc: () => T
-}) {
+/**
+ * 将指定参数记录到 route 的 hash 上，初始化时会应用值到对应 Ref 上
+ * @param data 指定参数记录map. 键为存储key，值为对应 Ref
+ */
+export function useRouteHash(data: Record<string, Ref<any>>) {
   const route = useRoute()
   const router = useRouter()
 
   // 从路由获取参数
-  if (options.init) {
-    const initData = decodeHash(route.hash) as T
-    options.init(initData)
-  }
+  const initData = decodeHash(route.hash)
+  Object.entries(data).forEach(([key, ref]) => {
+    ref.value = initData[key] || ref.value
+  })
 
   // 监听参数并同步到 hash
-  const data = computed(options.calc)
-  watch(data, () => {
-    const hash = encodeHash(data.value)
+  const watchData = computed(() => {
+    return Object.fromEntries(Object.entries(data).map(([key, ref]) => [key, ref.value]))
+  })
+  watch(watchData, () => {
+    const hash = encodeHash(watchData.value)
     router.push({ hash: hash })
   })
 }
@@ -49,6 +52,7 @@ export function decodeHash(hash: string): Record<string, any> {
     }
   }
 
+  console.log(`decoded hash: ${JSON.stringify(result)}`)
   return result
 }
 
