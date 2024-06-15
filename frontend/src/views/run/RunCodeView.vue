@@ -137,7 +137,7 @@ import { useRouteHash } from '@/utils/hash'
 const TypeSrc = '@'
 
 // 从路由获取参数
-const code = ref('')
+const code = ref('<?php\n')
 const autoRefresh = ref(false) // 自动刷新开关
 const openDiffMode = ref(false) // 对比模式开关
 const showTypes: Ref<string[]> = ref([]) // 展示类型列表
