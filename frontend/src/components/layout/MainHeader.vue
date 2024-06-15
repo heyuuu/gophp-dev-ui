@@ -27,16 +27,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { menuItems } from '@/router'
 
 const router = useRouter()
 const route = useRoute()
 
-const activeIndex = ref(route.path)
+const activeIndex = computed(() => route.path)
 const handleSelect = (key: string) => {
-  console.log({ route: key })
   router.push(key)
 }
 </script>
