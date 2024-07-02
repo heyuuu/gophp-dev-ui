@@ -4,93 +4,90 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/heyuuu/gophp/tests"
+	"gophp-dev-ui/pkg/service/runservice"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
+// api: /test/path_list
 type testPathListParam struct {
-	Src string `form:"src" binding:"required"`
+	Mode runservice.RunMode `form:"mode" binding:"required"`
+	Root string             `form:"root" binding:"required"`
 }
 
-func TestPathList(c *gin.Context) any {
-	var err error
-
+func TestPathListHandler(c *gin.Context) any {
+	// 获取请求参数
 	var p testPathListParam
-	if err = c.ShouldBindQuery(&p); err != nil {
+	if err := c.ShouldBind(&p); err != nil {
 		return err
 	}
 
-	// testCases
-	testPaths := tests.FindTestPathsInSrcDir(p.Src, true)
-
-	return gin.H{
-		"list":  testPaths,
-		"count": len(testPaths),
-	}
-}
-
-type testListParam struct {
-	Src    string `form:"src" binding:"required"`
-	Path   string `form:"path"`
-	Offset int    `form:"offset"`
-	Limit  int    `form:"limit"`
-}
-
-func TestList(c *gin.Context) any {
-	var err error
-
-	var p testListParam
-	if err = c.ShouldBindQuery(&p); err != nil {
-		return err
-	}
-
-	var testCases []*tests.TestCase
-	if p.Path == "" {
-		testCases, err = tests.FindTestCasesInSrcDir(p.Src, false)
-	} else {
-		dir := filepath.Join(p.Src, p.Path)
-		testCases, err = tests.FindTestCases(p.Src, dir)
-	}
+	// 获取 manager
+	manager, err := selectManager(p.Mode)
 	if err != nil {
 		return err
 	}
 
-	// offset && limit
-	total := len(testCases)
-	if p.Offset > 0 {
-		if len(testCases) > p.Offset {
-			testCases = testCases[p.Offset:]
-		} else {
-			testCases = nil
-		}
+	// 获取目录
+	list := manager.FindTestPaths(p.Root)
+	return gin.H{
+		"root":  p.Root,
+		"list":  list,
+		"count": len(list),
 	}
-	if p.Limit > 0 && p.Limit < len(testCases) {
-		testCases = testCases[:p.Limit]
-	}
-	count := len(testCases)
+}
 
-	// fileNames
-	var testNames = make([]string, len(testCases))
-	for i, tc := range testCases {
-		testNames[i] = tc.FileName()
+// api: /test/case_list
+type testCaseListParam struct {
+	Mode   runservice.RunMode `form:"mode" binding:"required"`
+	Path   string             `form:"path" binding:"required"`
+	Offset int                `form:"offset"`
+	Limit  int                `form:"limit"`
+}
+
+func TestCaseListHandler(c *gin.Context) any {
+	// 获取请求参数
+	var p testCaseListParam
+	if err := c.ShouldBind(&p); err != nil {
+		return err
+	}
+
+	// 获取 manager
+	manager, err := selectManager(p.Mode)
+	if err != nil {
+		return err
+	}
+
+	// 获取 case 列表
+	list := manager.FindTestCases(p.Path)
+	total := len(list)
+
+	// offset && limit
+	if p.Offset > 0 {
+		list = list[min(p.Offset, total):]
+	}
+	if p.Limit > 0 && p.Limit < len(list) {
+		list = list[:p.Limit]
 	}
 
 	return gin.H{
-		"list":   testNames,
+		"path":   p.Path,
 		"offset": p.Offset,
 		"limit":  p.Limit,
+		"list":   list,
 		"total":  total,
-		"count":  count,
+		"count":  len(list),
 	}
 }
 
 type testDetailParam struct {
-	Src  string `form:"src" binding:"required"`
-	Path string `form:"path" binding:"required"`
+	Mode runservice.RunMode `form:"mode" binding:"required"`
+	Src  string             `form:"src" binding:"required"`
+	Path string             `form:"path" binding:"required"`
 }
 
-func TestDetail(c *gin.Context) any {
+func TestDetailHandler(c *gin.Context) any {
 	var err error
 	var p testDetailParam
 	if err = c.ShouldBindQuery(&p); err != nil {
@@ -118,7 +115,7 @@ type testRunParams struct {
 	Path string `form:"path" binding:"required"`
 }
 
-func TestRun(c *gin.Context) any {
+func TestRunHandler(c *gin.Context) any {
 	var err error
 	var p testRunParams
 	if err = c.ShouldBindJSON(&p); err != nil {
@@ -139,7 +136,7 @@ type testRunCustomParams struct {
 	Sections map[string]string `form:"sections" binding:"required"`
 }
 
-func TestRunCustom(c *gin.Context) any {
+func TestRunCustomHandler(c *gin.Context) any {
 	var err error
 	var p testRunCustomParams
 	if err = c.ShouldBindJSON(&p); err != nil {

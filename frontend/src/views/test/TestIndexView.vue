@@ -52,11 +52,11 @@ async function update() {
     return
   }
 
-  const rep = await apiTestPathList({
+  const data = await apiTestPathList({
     src: src.value
   })
-  dirList.value = rep.data.list
-  console.log({ rep })
+  dirList.value = data.list
+  console.log({ data })
 }
 
 watch(src, update)

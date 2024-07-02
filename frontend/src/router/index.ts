@@ -30,17 +30,17 @@ const router = createRouter({
     {
       path: '/test/',
       name: 'test',
-      component: () => import('../views/test/IndexView.vue')
+      component: () => import('../views/test/TestIndexView.vue')
     },
     {
       path: '/test/list',
       name: 'test_list',
-      component: () => import('../views/test/ListView.vue')
+      component: () => import('../views/test/TestListView.vue')
     },
     {
       path: '/test/run',
       name: 'test_run',
-      component: () => import('../views/test/RunView.vue')
+      component: () => import('../views/test/TestRunView.vue')
     }
   ]
 })

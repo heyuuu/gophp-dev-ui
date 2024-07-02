@@ -55,11 +55,3 @@ func ApiHandler(h func(c *gin.Context) any) gin.HandlerFunc {
 		return
 	}
 }
-
-// -- params
-
-func ParseQuery[T any](c *gin.Context) (T, error) {
-	var tmp T
-	err := c.ShouldBindQuery(&tmp)
-	return tmp, err
-}

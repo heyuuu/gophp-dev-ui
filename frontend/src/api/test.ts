@@ -1,14 +1,13 @@
 import { apiGet, apiPost } from './base'
-import type { ApiResult } from './base'
 import type { SectionMap } from '@/models/test'
 
 type ApiTestPathListParam = {
   src: string
 }
-type ApiTestPathListResult = ApiResult<{
+type ApiTestPathListResult = {
   count: number
   list: string[]
-}>
+}
 export const apiTestPathList = async function (params: ApiTestPathListParam) {
   return await apiGet<ApiTestPathListResult>('test/path_list', params)
 }
@@ -19,11 +18,11 @@ type ApiTestListParam = {
   offset?: number
   limit?: number
 }
-type ApiTestListResult = ApiResult<{
+type ApiTestListResult = {
   list: string[]
   count: number
   total: number
-}>
+}
 export const apiTestList = async function (params: ApiTestListParam) {
   return await apiGet<ApiTestListResult>('test/list', params)
 }
@@ -32,11 +31,11 @@ type ApiTestDetailParam = {
   src: string
   path: string
 }
-type ApiTestDetailResult = ApiResult<{
+type ApiTestDetailResult = {
   src: string
   path: string
   sections: SectionMap
-}>
+}
 export const apiTestDetail = async function (params: ApiTestDetailParam) {
   return await apiGet<ApiTestDetailResult>('test/detail', params)
 }
@@ -56,7 +55,7 @@ type ApiTestRunParam = {
   src: string
   path: string
 }
-type ApiTestRunResult = ApiResult<{
+type ApiTestRunResult = {
   fileName: string
   filePath: string
 
@@ -67,7 +66,7 @@ type ApiTestRunResult = ApiResult<{
   output: string
   info: string
   useTime: number
-}>
+}
 export const apiTestRun = async function (params: ApiTestRunParam) {
   return await apiPost<ApiTestRunResult>('test/run', params)
 }
