@@ -16,8 +16,10 @@ type apiRunCodeParam = {
 type apiRunCodeResult = {
   result: {
     type: string
+    language: string
     content: string
   }[]
+  error: string
 }
 export const apiRunCode = async (params: apiRunCodeParam) => {
   return await apiPost<apiRunCodeResult>('run/code', params)

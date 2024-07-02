@@ -13,6 +13,7 @@
         v-model="code"
         height="80vh"
         class="code-editor"
+        language="php"
         :class="error ? 'code-editor-error' : ''"
       />
 
@@ -58,9 +59,18 @@
       <!-- 分栏结果栏 -->
       <div class="result-container" v-if="!openDiffMode">
         <template v-for="typ in allTypes" :key="typ">
-          <el-card v-if="isShowType(typ)" class="result-card" :header="typ">
-            <pre>{{ getTypeContent(typ) }}</pre>
-          </el-card>
+          <div class="result-card" v-if="isShowType(typ)">
+            <div class="result-card-header">{{ typ }}</div>
+            <div class="result-card-body">
+              <CodeEditor
+                :model-value="getTypeContent(typ)"
+                :language="getTypeLanguage(typ)"
+                height="100vh"
+                line-numbers="off"
+                readonly
+              />
+            </div>
+          </div>
         </template>
       </div>
 
@@ -69,7 +79,10 @@
         v-if="openDiffMode"
         :original="getTypeContent(diffTypeLeft)"
         :modified="getTypeContent(diffTypeRight)"
+        :original-language="getTypeLanguage(diffTypeLeft)"
+        :modified-language="getTypeLanguage(diffTypeRight)"
         height="100vh"
+        readonly
       />
     </el-col>
   </el-row>
@@ -112,15 +125,16 @@
 .result-card {
   flex: 1;
   min-width: 0;
-  margin: 0 10px;
+  margin: 0 5px;
 
-  padding-top: 0;
-  --el-card-padding: 10px;
-  height: 100vh;
-  background-color: #1e1e1e;
-  color: #d4d4d4;
-  font-size: 14px;
-  overflow: auto;
+  border: 1px solid white;
+}
+.result-card-header {
+  border-bottom: 1px solid white;
+  height: 30px;
+  color: var(--vt-c-white-soft);
+  display: flex;
+  padding: 0 10px;
 }
 </style>
 
@@ -173,6 +187,7 @@ function switchShowType(typ: string) {
 // 执行结果相关
 type ResultItem = {
   type: string
+  language: string
   content: string
 }
 
@@ -180,17 +195,20 @@ const result: Ref<ResultItem[]> = ref([])
 const error = ref('')
 
 function updateResult(res: ResultItem[], err: string) {
-  if (err) {
-    error.value = err
-    return
-  }
-
   result.value = res
   error.value = err
 }
 function showMessage(type: 'success' | 'error', message: string) {
   ElMessage({ message, type, grouping: true, offset: 8 })
 }
+function getTypeLanguage(typ: string): string {
+  if (typ === TypeSrc) {
+    return 'php'
+  }
+  const item = result.value.find((item) => item.type === typ)
+  return item?.language || 'json'
+}
+
 function getTypeContent(typ: string): string {
   if (typ === TypeSrc) {
     return code.value
@@ -216,8 +234,12 @@ function runCode() {
       if (currIndex !== runIndex) {
         return
       }
-      showMessage('success', '请求成功')
-      updateResult(res.result, '')
+      updateResult(res.result, res.error)
+      if (res.error) {
+        showMessage('error', res.error)
+      } else {
+        showMessage('success', '请求成功')
+      }
     },
     (err) => {
       if (currIndex !== runIndex) {

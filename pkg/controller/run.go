@@ -51,14 +51,7 @@ func RunCodeHandler(c *gin.Context) any {
 	}
 
 	// 执行代码，并返回结果
-	result, err := runCode(p.Code)
-	if err != nil {
-		return err
-	}
-
-	return gin.H{
-		"result": result,
-	}
+	return new(runner).run(p.Code)
 }
 
 type runCodeParam struct {
@@ -66,38 +59,75 @@ type runCodeParam struct {
 }
 
 type RunResultItem struct {
-	Type    string `json:"type"`
-	Content string `json:"content"`
+	Type     RunType `json:"type"`
+	Language string  `json:"language"`
+	Content  string  `json:"content"`
 }
 
-func runCode(code string) (result []RunResultItem, err error) {
-	// parse-ast
-	astNodes, err := parser.ParseCode(code)
-	if err != nil {
-		return nil, fmt.Errorf("ast parse fail: %w", err)
-	}
+type RunResult struct {
+	Result []RunResultItem `json:"result"`
+	Error  string          `json:"error"`
+}
 
-	astDump := vardumper.Sprint(astNodes)
-	result = append(result, RunResultItem{Type: RunTypeAst, Content: astDump})
+type runner struct {
+	result *RunResult
+}
 
-	astPrint, err := ast.PrintFile(astNodes)
-	if err != nil {
-		return nil, fmt.Errorf("ast print fail: %w", err)
-	}
-	result = append(result, RunResultItem{Type: RunTypeAstPrint, Content: astPrint})
+func (r *runner) run(code string) (result *RunResult) {
+	result = new(RunResult)
+	r.result = result
 
-	// run code
-	output := executeCode(code)
-	result = append(result, RunResultItem{Type: RunTypeExec, Content: output})
+	defer func() {
+		if e := recover(); e != nil {
+			if err, ok := e.(error); ok && err != nil {
+				result.Error = err.Error()
+			} else {
+				result.Error = fmt.Sprintf("unknown run panic: %v", e)
+			}
+		}
+	}()
 
-	// raw run code
-	rawOutput := executeCodeRaw(code)
-	result = append(result, RunResultItem{Type: RunTypeExecRaw, Content: rawOutput})
+	r.runCode(code)
 
 	return
 }
 
-func executeCode(code string) string {
+func (r *runner) checkError(prefix string, err error) {
+	if err != nil {
+		panic(fmt.Errorf(prefix+" %w", err))
+	}
+}
+
+func (r *runner) addResult(typ RunType, lang string, content string) {
+	r.result.Result = append(r.result.Result, RunResultItem{
+		Type:     typ,
+		Language: lang,
+		Content:  content,
+	})
+}
+
+func (r *runner) runCode(code string) {
+	// parse-ast
+	astNodes, err := parser.ParseCode(code)
+	r.checkError("ast parse fail: %w", err)
+
+	astDump := vardumper.Dump(astNodes)
+	r.addResult(RunTypeAst, "", astDump)
+
+	astPrint, err := ast.PrintFile(astNodes)
+	r.checkError("ast print fail: %w", err)
+	r.addResult(RunTypeAstPrint, "", astPrint)
+
+	// run code
+	output := r.executeCode(code)
+	r.addResult(RunTypeExec, "", output)
+
+	// raw run code
+	rawOutput := r.executeCodeRaw(code)
+	r.addResult(RunTypeExecRaw, "", rawOutput)
+}
+
+func (r *runner) executeCode(code string) string {
 	if strings.HasPrefix(code, "<?php\n") {
 		code = code[6:]
 	} else {
@@ -122,14 +152,14 @@ func executeCode(code string) string {
 	return buf.String()
 }
 
-func executeCodeRaw(code string) string {
+func (r *runner) executeCodeRaw(code string) string {
 	if strings.HasPrefix(code, "<?php\n") {
 		code = code[6:]
 	} else {
 		code = "?>" + code
 	}
 
-	output, err := runCommand(5*time.Second, "php74", "-r", code)
+	output, err := r.runCommand(5*time.Second, "php74", "-r", code)
 	if err != nil {
 		return output + "\n" + err.Error()
 	}
@@ -140,7 +170,7 @@ func executeCodeRaw(code string) string {
 	return output
 }
 
-func runCommand(timeout time.Duration, name string, args ...string) (string, error) {
+func (r *runner) runCommand(timeout time.Duration, name string, args ...string) (string, error) {
 	// 超时控制
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
