@@ -27,6 +27,7 @@ func InitRouter(r *gin.Engine, staticFs embed.FS) {
 		apiGroup.POST("/run/code", controller.ApiHandler(controller.RunCodeHandler))
 
 		// test
+		apiGroup.GET("/test/config", controller.ApiHandler(controller.TestConfigHandler))
 		apiGroup.GET("/test/path_list", controller.ApiHandler(controller.TestPathListHandler))
 		apiGroup.GET("/test/case_list", controller.ApiHandler(controller.TestCaseListHandler))
 		apiGroup.GET("/test/detail", controller.ApiHandler(controller.TestDetailHandler))

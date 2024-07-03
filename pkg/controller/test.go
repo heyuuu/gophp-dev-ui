@@ -10,6 +10,29 @@ import (
 	"strings"
 )
 
+// api: /test/config
+type testConfigParam struct {
+	Mode runservice.RunMode `form:"mode" binding:"required"`
+}
+
+func TestConfigHandler(c *gin.Context) any {
+	// 获取请求参数
+	var p testConfigParam
+	if err := c.ShouldBind(&p); err != nil {
+		return err
+	}
+
+	// 获取 manager
+	manager, err := selectManager(p.Mode)
+	if err != nil {
+		return err
+	}
+
+	return gin.H{
+		"defaultTestRoot": manager.DefaultTestRoot(),
+	}
+}
+
 // api: /test/path_list
 type testPathListParam struct {
 	Mode runservice.RunMode `form:"mode" binding:"required"`
@@ -30,7 +53,11 @@ func TestPathListHandler(c *gin.Context) any {
 	}
 
 	// 获取目录
-	list := manager.FindTestPaths(p.Root)
+	list, err := manager.FindTestPaths(p.Root)
+	if err != nil {
+		return err
+	}
+
 	return gin.H{
 		"root":  p.Root,
 		"list":  list,
@@ -41,7 +68,8 @@ func TestPathListHandler(c *gin.Context) any {
 // api: /test/case_list
 type testCaseListParam struct {
 	Mode   runservice.RunMode `form:"mode" binding:"required"`
-	Path   string             `form:"path" binding:"required"`
+	Root   string             `form:"root" binding:"required"`
+	Path   string             `form:"path"`
 	Offset int                `form:"offset"`
 	Limit  int                `form:"limit"`
 }
@@ -60,7 +88,10 @@ func TestCaseListHandler(c *gin.Context) any {
 	}
 
 	// 获取 case 列表
-	list := manager.FindTestCases(p.Path)
+	list, err := manager.FindTestCases(p.Root, p.Path)
+	if err != nil {
+		return err
+	}
 	total := len(list)
 
 	// offset && limit
@@ -81,9 +112,10 @@ func TestCaseListHandler(c *gin.Context) any {
 	}
 }
 
+// api: /test/detail
 type testDetailParam struct {
 	Mode runservice.RunMode `form:"mode" binding:"required"`
-	Src  string             `form:"src" binding:"required"`
+	Root string             `form:"root" binding:"required"`
 	Path string             `form:"path" binding:"required"`
 }
 
@@ -95,7 +127,7 @@ func TestDetailHandler(c *gin.Context) any {
 	}
 
 	fileName := p.Path
-	filePath := filepath.Join(p.Src, p.Path)
+	filePath := filepath.Join(p.Root, p.Path)
 
 	tc := tests.NewTestCase(fileName, filePath)
 	sections, err := tc.Parse()
@@ -104,15 +136,17 @@ func TestDetailHandler(c *gin.Context) any {
 	}
 
 	return gin.H{
-		"src":      p.Src,
+		"root":     p.Root,
 		"path":     p.Path,
 		"sections": sections,
 	}
 }
 
+// api: /test/run
 type testRunParams struct {
-	Src  string `form:"src" binding:"required"`
-	Path string `form:"path" binding:"required"`
+	Mode runservice.RunMode `form:"mode" binding:"required"`
+	Root string             `form:"root" binding:"required"`
+	Path string             `form:"path" binding:"required"`
 }
 
 func TestRunHandler(c *gin.Context) any {
@@ -123,17 +157,19 @@ func TestRunHandler(c *gin.Context) any {
 	}
 
 	fileName := p.Path
-	filePath := filepath.Join(p.Src, p.Path)
+	filePath := filepath.Join(p.Root, p.Path)
 
 	tc := tests.NewTestCase(fileName, filePath)
-	ret := runTestCaseAndReturn(p.Src, tc)
+	ret := runTestCaseAndReturn(p.Root, tc)
 	return ret
 }
 
+// api: /test/run_custom
 type testRunCustomParams struct {
-	Src      string            `form:"src" binding:"required"`
-	Path     string            `form:"path"`
-	Sections map[string]string `form:"sections" binding:"required"`
+	Mode     runservice.RunMode `form:"mode" binding:"required"`
+	Root     string             `form:"root" binding:"required"`
+	Path     string             `form:"path" binding:"required"`
+	Sections map[string]string  `form:"sections" binding:"required"`
 }
 
 func TestRunCustomHandler(c *gin.Context) any {
@@ -146,7 +182,7 @@ func TestRunCustomHandler(c *gin.Context) any {
 	var fileName, filePath string
 	if p.Path != "" {
 		fileName = p.Path
-		filePath = filepath.Join(p.Src, p.Path)
+		filePath = filepath.Join(p.Root, p.Path)
 	} else {
 		filePath, err = createTempTestFile()
 		if err != nil {
@@ -157,7 +193,7 @@ func TestRunCustomHandler(c *gin.Context) any {
 	}
 
 	tc := tests.NewTestCaseParsed(fileName, filePath, p.Sections)
-	ret := runTestCaseAndReturn(p.Src, tc)
+	ret := runTestCaseAndReturn(p.Root, tc)
 	return ret
 }
 

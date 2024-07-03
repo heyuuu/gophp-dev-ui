@@ -46,9 +46,13 @@ import type { SectionType, Section } from '@/models/test'
 import { sectionMapToList, sectionListToMap } from '@/models/test'
 import RunResultCard from '@/components/test/RunResultCard.vue'
 
+// 从路由path获取参数
+const props = defineProps<{ mode: string }>()
+const mode = (props.mode || '') as string
+
 // uri 参数
 const route = useRoute()
-const src = (route.query.src || '') as string
+const root = (route.query.root || '') as string
 const path = (route.query.path || '') as string
 
 // sections
@@ -71,15 +75,13 @@ function sectionShowType(type: SectionType): SectionShowType {
 
 // 初始化case数据
 onMounted(async () => {
-  const rep = await apiTestDetail({
-    src: src,
+  const data = await apiTestDetail({
+    mode: mode,
+    root: root,
     path: path
   })
-  if (rep.code !== 0) {
-    return
-  }
 
-  sections.value = sectionMapToList(rep.data.sections)
+  sections.value = sectionMapToList(data.sections)
   console.log(sections.value)
   run()
 })
@@ -88,16 +90,13 @@ onMounted(async () => {
 function run() {
   updateResult('执行中...', '', '')
   apiTestRunCustom({
-    src: src,
+    mode: mode,
+    root: root,
     path: path,
     sections: sectionListToMap(sections.value)
   }).then(
-    (res) => {
-      if (res.code !== 0) {
-        updateResult('执行失败: error=' + res.error, '', '')
-        return
-      }
-      updateResult(res.data.info, res.data.output, res.data.expect)
+    (data) => {
+      updateResult(data.info, data.output, data.expect)
     },
     () => {
       updateResult('调用 url 失败', '', '')

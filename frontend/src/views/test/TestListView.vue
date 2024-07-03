@@ -36,7 +36,7 @@
         <el-table-column label="status" prop="status" width="100" />
         <el-table-column label="herf">
           <template #default="scope">
-            <el-link type="primary" target="_blank" :href="pageTestRun(src, scope.row.name)"
+            <el-link type="primary" target="_blank" :href="pageTestRun(mode, root, scope.row.name)"
               >detail</el-link
             >&nbsp; <el-link type="primary" @click="runTest(scope.row.idx)">retry</el-link>&nbsp;
             <el-link type="primary" @click="copyTestName(scope.row.idx)">paste</el-link>&nbsp;
@@ -99,18 +99,21 @@
 </style>
 
 <script setup lang="ts">
-import { ref, type Ref, watch, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { pageTestRun } from '@/router/routes'
-import { apiTestList, apiTestRun } from '@/api/test'
-import type { RunStatus } from '@/api/test'
+import { apiTestCaseList, apiTestRun, type RunStatus } from '@/api/test'
 import { clipboardWriteText } from '@/utils/utils'
 import { ElMessage } from 'element-plus'
 import DiffEditor from '@/components/DiffEditor.vue'
 
-// uri 参数
+// 从路由path获取参数
+const props = defineProps<{ mode: string }>()
+const mode = (props.mode || '') as string
+
+// 从路由query获取参数
 const route = useRoute()
-const src = (route.query.src || '') as string
+const root = (route.query.root || '') as string
 const path = (route.query.path || '') as string
 const offset = route.query.offset ? parseInt(route.query.offset as string) : 0
 const limit = route.query.limit ? parseInt(route.query.limit as string) : 0
@@ -167,17 +170,14 @@ const statusCount = ref({
 
 // 初始化列表
 onMounted(async () => {
-  const rep = await apiTestList({
-    src: src,
+  const data = await apiTestCaseList({
+    mode: mode,
+    root: root,
     path: path,
     offset: offset,
     limit: limit
   })
-  if (rep.code !== 0) {
-    return
-  }
-
-  tests.value = rep.data.list.map((name, idx) => {
+  tests.value = data.list.map((name, idx) => {
     return {
       idx: idx,
       name: name,
@@ -216,19 +216,15 @@ function runTest(index: number) {
 
   // api
   apiTestRun({
-    src: src,
+    mode: mode,
+    root: root,
     path: test.name
   }).then(
-    (res) => {
-      if (res.code !== 0) {
-        updateTest(test, 'FAIL', '执行失败: error=' + res.error)
-        return
-      }
-
-      updateTest(test, res.data.status, res.data.info)
-      test.code = res.data.code
-      test.output = res.data.output
-      test.expect = res.data.expect
+    (data) => {
+      updateTest(test, data.status, data.info)
+      test.code = data.code
+      test.output = data.output
+      test.expect = data.expect
       runNext()
     },
     () => {

@@ -1,19 +1,23 @@
 import { apiGet, apiPost } from './base'
 
 // api: GET /run/config
-type apiRunConfigResult = {
+type ApiRunConfigParam = {
+  mode: string
+}
+type ApiRunConfigResult = {
   types: string[]
 }
-export const apiRunConfig = async () => {
-  return await apiGet<apiRunConfigResult>('run/config', {})
+export const apiRunConfig = async (params: ApiRunConfigParam) => {
+  return await apiGet<ApiRunConfigResult>('run/config', params)
 }
 
 // api: POST /run/code
 
-type apiRunCodeParam = {
+type ApiRunCodeParam = {
+  mode: string
   code: string
 }
-type apiRunCodeResult = {
+type ApiRunCodeResult = {
   result: {
     type: string
     language: string
@@ -21,6 +25,6 @@ type apiRunCodeResult = {
   }[]
   error: string
 }
-export const apiRunCode = async (params: apiRunCodeParam) => {
-  return await apiPost<apiRunCodeResult>('run/code', params)
+export const apiRunCode = async (params: ApiRunCodeParam) => {
+  return await apiPost<ApiRunCodeResult>('run/code', params)
 }

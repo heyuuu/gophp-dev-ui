@@ -21,7 +21,7 @@ export function useRouteHash(data: Record<string, Ref<any>>) {
   })
   watch(watchData, () => {
     const hash = encodeHash(watchData.value)
-    router.push({ hash: hash })
+    router.push({ ...route, hash: hash })
   })
 }
 

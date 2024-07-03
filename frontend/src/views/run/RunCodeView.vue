@@ -150,7 +150,11 @@ import { useRouteHash } from '@/utils/hash'
 // 常量
 const TypeSrc = '@'
 
-// 从路由获取参数
+// 从路由path获取参数
+const props = defineProps<{ mode: string }>()
+const mode = props.mode
+
+// 从路由hash获取参数
 const code = ref('<?php\n')
 const autoRefresh = ref(false) // 自动刷新开关
 const openDiffMode = ref(false) // 对比模式开关
@@ -164,7 +168,7 @@ useRouteHash({ code, autoRefresh, openDiffMode, showTypes, diffTypeLeft, diffTyp
 // 初始化配置
 const allTypes: Ref<string[]> = ref([]) // 全量的类型列表
 onMounted(async () => {
-  apiRunConfig().then((res) => {
+  apiRunConfig({ mode: mode }).then((res) => {
     allTypes.value = res.types
     if (showTypes.value.length === 0) {
       showTypes.value = allTypes.value
@@ -229,7 +233,7 @@ function runCode() {
   runIndex++
   const currIndex = runIndex
 
-  apiRunCode({ code: code.value }).then(
+  apiRunCode({ mode: mode, code: code.value }).then(
     (res) => {
       if (currIndex !== runIndex) {
         return

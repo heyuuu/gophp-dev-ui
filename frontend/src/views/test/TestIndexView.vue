@@ -2,8 +2,8 @@
   <!-- 搜索框 -->
   <el-row style="margin-top: 20px">
     <el-col :span="12" :offset="6">
-      <el-input v-model="src" class="input">
-        <template #prepend>src</template>
+      <el-input v-model="root" class="input">
+        <template #prepend>root</template>
         <template #append>
           <el-button :icon="Search" @click="update"></el-button>
         </template>
@@ -18,7 +18,7 @@
         <el-table-column prop="name" label="Name" />
         <el-table-column prop="name" label="Link">
           <template #default="scope">
-            <el-link type="primary" target="_blank" :href="pageTestList(src, scope.row.name)"
+            <el-link type="primary" target="_blank" :href="pageTestList(mode, root, scope.row.name)"
               >列表页</el-link
             >
           </template>
@@ -29,36 +29,39 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, type Ref } from 'vue'
+import { ref, watch, computed, onMounted, type Ref } from 'vue'
 import { Search } from '@element-plus/icons-vue'
-import { apiTestPathList } from '@/api/test'
+import { apiTestConfig, apiTestPathList } from '@/api/test'
 import { pageTestList } from '@/router/routes'
 
-const src = ref('/Users/heyu/Code/src/php-7.4.33')
-const dirList: Ref<String[]> = ref([])
+// 从路由path获取参数
+const props = defineProps<{ mode: string }>()
+const mode = props.mode || ''
 
-const tableData = computed(() => {
-  return dirList.value.map((dir) => {
-    return {
-      name: dir
-    }
-  })
+//
+const root = ref('')
+const dirList: Ref<string[]> = ref([])
+const tableData = computed(() => dirList.value.map((name) => ({ name })))
+
+// 初始化配置
+onMounted(async () => {
+  const config = await apiTestConfig({ mode: mode })
+  root.value = config.defaultTestRoot
 })
 
 // 更新列表
 async function update() {
-  if (src.value == '') {
+  if (root.value === '') {
     dirList.value = []
     return
   }
 
   const data = await apiTestPathList({
-    src: src.value
+    mode: mode,
+    root: root.value
   })
   dirList.value = data.list
   console.log({ data })
 }
-
-watch(src, update)
-update()
+watch(root, update)
 </script>

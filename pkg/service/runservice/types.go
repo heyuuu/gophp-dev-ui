@@ -10,8 +10,15 @@ const (
 type ResultType string
 
 const (
+	RunTypeSrc      ResultType = "src"
+	RunTypeExpected ResultType = "expected"
+
+	RunTypeParseRaw ResultType = "parse_raw"
 	RunTypeAst      ResultType = "ast"
 	RunTypeAstPrint ResultType = "ast-print"
+	RunTypeIr       ResultType = "ir"
+	RunTypeIrPrint  ResultType = "ir-print"
+	RunTypeIrRender ResultType = "ir-render"
 	RunTypeExec     ResultType = "execute"
 	RunTypeExecRaw  ResultType = "execute-raw"
 )
