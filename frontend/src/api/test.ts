@@ -1,5 +1,4 @@
 import { apiGet, apiPost } from './base'
-import type { SectionMap } from '@/models/test'
 
 // api: GET /test/config
 type ApiTestConfigParam = {
@@ -49,25 +48,27 @@ type ApiTestDetailParam = {
   path: string
 }
 type ApiTestDetailResult = {
-  root: string
-  path: string
-  sections: SectionMap
+  content: string
 }
 export const apiTestDetail = async (params: ApiTestDetailParam) => {
   return await apiGet<ApiTestDetailResult>('test/detail', params)
 }
 
 // api: POST /test/run
-export type RunStatus =
-  | 'PASS'
-  | 'BORK'
-  | 'FAIL'
-  | 'WARN'
-  | 'LEAK'
-  | 'XFAIL'
-  | 'XLEAK'
-  | 'SKIP'
-  | 'SLOW'
+export type TestResultStatus =
+  | 'PASS' // 执行成功
+  | 'FAIL' // 执行失败
+  | 'BORK' // 测试case不合法
+  | 'SKIP' // 跳过执行
+export type TestResult = {
+  code: string
+  expected: string
+  status: TestResultStatus
+  statusText: string
+  output: string
+  info: string
+  useTime: number
+}
 
 type ApiTestRunParam = {
   mode: string
@@ -75,16 +76,7 @@ type ApiTestRunParam = {
   path: string
 }
 type ApiTestRunResult = {
-  fileName: string
-  filePath: string
-
-  code: string
-  expect: string
-
-  status: RunStatus
-  output: string
-  info: string
-  useTime: number
+  result: TestResult
 }
 export const apiTestRun = async (params: ApiTestRunParam) => {
   return await apiPost<ApiTestRunResult>('test/run', params)
@@ -94,8 +86,8 @@ export const apiTestRun = async (params: ApiTestRunParam) => {
 type ApiTestRunCustomParam = {
   mode: string
   root: string
-  path?: string
-  sections: SectionMap
+  path: string
+  content: string
 }
 type ApiTestRunCustomResult = ApiTestRunResult
 export const apiTestRunCustom = async (params: ApiTestRunCustomParam) => {

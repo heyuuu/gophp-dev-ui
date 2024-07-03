@@ -1,13 +1,8 @@
 package controller
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/heyuuu/gophp/tests"
 	"gophp-dev-ui/pkg/service/runservice"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 // api: /test/config
@@ -103,6 +98,7 @@ func TestCaseListHandler(c *gin.Context) any {
 	}
 
 	return gin.H{
+		"root":   p.Root,
 		"path":   p.Path,
 		"offset": p.Offset,
 		"limit":  p.Limit,
@@ -120,123 +116,94 @@ type testDetailParam struct {
 }
 
 func TestDetailHandler(c *gin.Context) any {
-	var err error
+	// 获取请求参数
 	var p testDetailParam
-	if err = c.ShouldBindQuery(&p); err != nil {
+	if err := c.ShouldBind(&p); err != nil {
 		return err
 	}
 
-	fileName := p.Path
-	filePath := filepath.Join(p.Root, p.Path)
-
-	tc := tests.NewTestCase(fileName, filePath)
-	sections, err := tc.Parse()
+	// 获取 manager
+	manager, err := selectManager(p.Mode)
 	if err != nil {
-		return fmt.Errorf("parse test-case file failed: %w", err)
+		return err
+	}
+
+	// 获取详情
+	content, err := manager.TestCaseDetail(p.Root, p.Path)
+	if err != nil {
+		return err
 	}
 
 	return gin.H{
-		"root":     p.Root,
-		"path":     p.Path,
-		"sections": sections,
+		"root":    p.Root,
+		"path":    p.Path,
+		"content": content,
 	}
 }
 
 // api: /test/run
-type testRunParams struct {
+type testRunParam struct {
 	Mode runservice.RunMode `form:"mode" binding:"required"`
 	Root string             `form:"root" binding:"required"`
 	Path string             `form:"path" binding:"required"`
 }
 
 func TestRunHandler(c *gin.Context) any {
-	var err error
-	var p testRunParams
-	if err = c.ShouldBindJSON(&p); err != nil {
+	// 获取请求参数
+	var p testRunParam
+	if err := c.ShouldBind(&p); err != nil {
 		return err
 	}
 
-	fileName := p.Path
-	filePath := filepath.Join(p.Root, p.Path)
+	// 获取 manager
+	manager, err := selectManager(p.Mode)
+	if err != nil {
+		return err
+	}
 
-	tc := tests.NewTestCase(fileName, filePath)
-	ret := runTestCaseAndReturn(p.Root, tc)
-	return ret
+	// 获取详情
+	result, err := manager.RunTestCase(p.Root, p.Path)
+	if err != nil {
+		return err
+	}
+
+	return gin.H{
+		"root":   p.Root,
+		"path":   p.Path,
+		"result": result,
+	}
 }
 
 // api: /test/run_custom
-type testRunCustomParams struct {
-	Mode     runservice.RunMode `form:"mode" binding:"required"`
-	Root     string             `form:"root" binding:"required"`
-	Path     string             `form:"path" binding:"required"`
-	Sections map[string]string  `form:"sections" binding:"required"`
+type testRunCustomParam struct {
+	Mode    runservice.RunMode `form:"mode" binding:"required"`
+	Root    string             `form:"root" binding:"required"`
+	Path    string             `form:"path" binding:"required"`
+	Content string             `form:"content" binding:"required"`
 }
 
 func TestRunCustomHandler(c *gin.Context) any {
-	var err error
-	var p testRunCustomParams
-	if err = c.ShouldBindJSON(&p); err != nil {
+	// 获取请求参数
+	var p testRunCustomParam
+	if err := c.ShouldBind(&p); err != nil {
 		return err
 	}
 
-	var fileName, filePath string
-	if p.Path != "" {
-		fileName = p.Path
-		filePath = filepath.Join(p.Root, p.Path)
-	} else {
-		filePath, err = createTempTestFile()
-		if err != nil {
-			return err
-		}
-
-		fileName = filepath.Base(filePath)
-	}
-
-	tc := tests.NewTestCaseParsed(fileName, filePath, p.Sections)
-	ret := runTestCaseAndReturn(p.Root, tc)
-	return ret
-}
-
-func createTempTestFile() (string, error) {
-	fs, err := os.CreateTemp(os.TempDir(), "gophp_dev_*.phpt")
+	// 获取 manager
+	manager, err := selectManager(p.Mode)
 	if err != nil {
-		return "", err
+		return err
 	}
-	defer fs.Close()
 
-	return fs.Name(), nil
-}
+	// 获取详情
+	result, err := manager.RunTestCaseCustom(p.Root, p.Path, p.Content)
+	if err != nil {
+		return err
+	}
 
-func runTestCase(src string, tc *tests.TestCase) (result *tests.Result, log string) {
-	conf := tests.DefaultConfig()
-	conf.SrcDir = src
-
-	var buf strings.Builder
-	conf.Logger = tests.LoggerFunc(func(tc *tests.TestCase, event int, message string) {
-		if tc != nil {
-			buf.WriteString(message)
-		}
-	})
-
-	return tests.TestOneCase(conf, tc), buf.String()
-}
-
-func runTestCaseAndReturn(src string, tc *tests.TestCase) gin.H {
-	result, log := runTestCase(src, tc)
-	sections := tc.Sections()
 	return gin.H{
-		"fileName": tc.FileName(),
-		"filePath": tc.FilePath(),
-
-		// case
-		//"sections": tc.Sections(),
-		"code":   sections["FILE"],
-		"expect": sections["EXPECT"] + sections["EXPECTF"] + sections["EXPECTREGEX"],
-
-		// result
-		"status":  result.MainType(),
-		"output":  result.Output(),
-		"info":    result.Info() + "\n" + log,
-		"useTime": result.UseTime().Nanoseconds(),
+		"root":   p.Root,
+		"path":   p.Path,
+		"result": result,
 	}
 }

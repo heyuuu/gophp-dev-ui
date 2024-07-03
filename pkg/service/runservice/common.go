@@ -6,10 +6,10 @@ import (
 	"slices"
 )
 
-func findTestFiles(path string, checker func(file string) bool) []string {
+func findTestFiles(root string, path string, checker func(file string) bool) []string {
 	var testFiles []string
-	_ = eachTestFile(path, checker, func(fullPath string) {
-		name, _ := filepath.Rel(path, fullPath)
+	_ = eachTestFile(filepath.Join(root, path), checker, func(fullPath string) {
+		name, _ := filepath.Rel(root, fullPath)
 		testFiles = append(testFiles, name)
 	})
 	return testFiles

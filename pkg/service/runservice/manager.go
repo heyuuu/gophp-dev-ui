@@ -17,9 +17,12 @@ func GetManager(mode RunMode) Manager {
 type Manager interface {
 	// run
 	AllResultTypes() []ResultType
-	Run(code string) *RunResult
+	RunCode(code string) *RunResult
 	// test
 	DefaultTestRoot() string
 	FindTestPaths(root string) ([]string, error)
 	FindTestCases(root string, path string) ([]string, error)
+	TestCaseDetail(root string, path string) (string, error)
+	RunTestCase(root string, path string) (*TestResult, error)
+	RunTestCaseCustom(root string, path string, content string) (*TestResult, error)
 }

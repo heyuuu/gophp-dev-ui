@@ -1,41 +1,91 @@
 package runservice
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"github.com/heyuuu/gophp/compile/ast"
+	"github.com/heyuuu/gophp/compile/ir"
 	"github.com/heyuuu/gophp/compile/parser"
+	"github.com/heyuuu/gophp/compile/render"
+	"github.com/heyuuu/gophp/compile/transformer"
+	"github.com/heyuuu/gophp/kits/oskit"
 	"github.com/heyuuu/gophp/kits/vardumper"
-	"github.com/heyuuu/gophp/php/perr"
-	"github.com/heyuuu/gophp/sapi"
-	"log"
-	"os/exec"
-	"regexp"
-	"strconv"
 	"strings"
-	"time"
 )
 
 type compileRunner struct {
-	result *RunResult
+	resultItems []RunResultItem
+	err         error
 }
 
-func (r *compileRunner) run(code string) (result *RunResult) {
-	result = new(RunResult)
-	r.result = result
+func (r *compileRunner) reset() {
+	r.resultItems = nil
+	r.err = nil
+}
 
+func (r *compileRunner) run(code string) *RunResult {
+	// reset
+	r.reset()
+
+	// run
+	r.realRunCode(code)
+
+	// build result
+	result := new(RunResult)
+	result.Result = r.resultItems
+	if r.err != nil {
+		result.Error = r.err.Error()
+	}
+
+	return result
+}
+
+func (r *compileRunner) realRunCode(code string) {
 	defer func() {
 		if e := recover(); e != nil {
 			if err, ok := e.(error); ok && err != nil {
-				result.Error = err.Error()
+				r.err = err
 			} else {
-				result.Error = fmt.Sprintf("unknown run panic: %v", e)
+				r.err = fmt.Errorf("unknown run panic: %v", e)
 			}
 		}
 	}()
 
+	// load test case
+	isTestCaseMode := strings.HasPrefix(code, "!!!")
+	if isTestCaseMode {
+		testCaseFile := strings.TrimSpace(code[3:])
+		src, expected, err := r.loadTestCase(testCaseFile)
+		if err != nil {
+			r.err = err
+			return
+		}
+		r.addResult(RunTypeSrc, "php", src)
+		r.addResult(RunTypeExpected, "go", expected)
+
+		code = src
+	}
+
 	r.runCode(code)
+}
+
+func (r *compileRunner) loadTestCase(srcFile string) (src string, expected string, err error) {
+	if !strings.HasSuffix(srcFile, ".php") {
+		err = fmt.Errorf("test case file must be .php")
+		return
+	}
+
+	src, err = oskit.ReadFileAsString(srcFile)
+	if err != nil {
+		err = fmt.Errorf("load src file failed: %w", err)
+		return
+	}
+
+	expectedFile := strings.TrimSuffix(srcFile, ".php") + ".go"
+	expected, err = oskit.ReadFileAsString(expectedFile)
+	if err != nil {
+		err = fmt.Errorf("load expected file failed: %w", err)
+		return
+	}
 
 	return
 }
@@ -47,7 +97,7 @@ func (r *compileRunner) checkError(prefix string, err error) {
 }
 
 func (r *compileRunner) addResult(typ ResultType, lang string, content string) {
-	r.result.Result = append(r.result.Result, RunResultItem{
+	r.resultItems = append(r.resultItems, RunResultItem{
 		Type:     typ,
 		Language: lang,
 		Content:  content,
@@ -55,81 +105,34 @@ func (r *compileRunner) addResult(typ ResultType, lang string, content string) {
 }
 
 func (r *compileRunner) runCode(code string) {
-	// parse-ast
-	astNodes, err := parser.ParseCode(code)
-	r.checkError("ast parse fail: %w", err)
+	// parse
+	parseRaw, astFile, err := parser.ParseCodeVerbose(code)
+	r.addResult(RunTypeParseRaw, "json", parseRaw)
+	r.checkError(`ast parse fail: `, err)
 
-	astDump := vardumper.Dump(astNodes)
+	astDump := vardumper.DumpEx(astFile, vardumper.Config{
+		ShowLineNum:        true,
+		ShowAnonymousField: true,
+	})
 	r.addResult(RunTypeAst, "", astDump)
 
-	astPrint, err := ast.PrintFile(astNodes)
-	r.checkError("ast print fail: %w", err)
-	r.addResult(RunTypeAstPrint, "", astPrint)
+	astPrint, err := ast.PrintFile(astFile)
+	r.checkError(`ast print fail: `, err)
+	r.addResult(RunTypeAstPrint, "php", astPrint)
 
-	// run code
-	output := r.executeCode(code)
-	r.addResult(RunTypeExec, "", output)
+	// transformer
+	irFile, err := transformer.TransformFile(astFile)
+	r.checkError("ir transformer fail: ", err)
 
-	// raw run code
-	rawOutput := r.executeCodeRaw(code)
-	r.addResult(RunTypeExecRaw, "", rawOutput)
-}
+	irDump := vardumper.Dump(irFile)
+	r.addResult(RunTypeIr, "", irDump)
 
-func (r *compileRunner) executeCode(code string) string {
-	if strings.HasPrefix(code, "<?php\n") {
-		code = code[6:]
-	} else {
-		code = "?>" + code
-	}
+	irPrint, err := ir.PrintFile(irFile)
+	r.checkError("ir print fail: ", err)
+	r.addResult(RunTypeIrPrint, "php", irPrint)
 
-	cmd := sapi.Command(
-		// ini
-		"-d", "error_reporting="+strconv.Itoa(int(perr.E_ALL)),
-		// code
-		"-r", code,
-	)
-
-	var buf strings.Builder
-	cmd.Stdout = &buf
-	cmd.Stderr = &buf
-
-	err := cmd.RunSafe()
-	if err != nil {
-		buf.WriteString(">>> Execute failed: " + err.Error())
-	}
-	return buf.String()
-}
-
-func (r *compileRunner) executeCodeRaw(code string) string {
-	if strings.HasPrefix(code, "<?php\n") {
-		code = code[6:]
-	} else {
-		code = "?>" + code
-	}
-
-	output, err := r.runCommand(5*time.Second, "php74", "-r", code)
-	if err != nil {
-		return output + "\n" + err.Error()
-	}
-
-	// todo: 暂时屏蔽行号信息的差异，待完善后移除
-	output = regexp.MustCompile(`in Command line code on line \d+`).ReplaceAllString(output, "in Command line code on line 0")
-
-	return output
-}
-
-func (r *compileRunner) runCommand(timeout time.Duration, name string, args ...string) (string, error) {
-	// 超时控制
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, name, args...)
-	log.Printf("run command: %s\n", cmd.String())
-	if output, err := cmd.Output(); err == nil {
-		return string(output), nil
-	} else if ctx.Err() != nil && errors.Is(ctx.Err(), context.DeadlineExceeded) {
-		return string(output), fmt.Errorf("run timeout: %w", err)
-	} else {
-		return string(output), fmt.Errorf("run fail: %w", err)
-	}
+	// render
+	irRender, err := render.RenderFile(irFile)
+	r.checkError("ir render fail: ", err)
+	r.addResult(RunTypeIrRender, "go", irRender)
 }

@@ -1,26 +1,7 @@
 <template>
   <el-row @keyup.ctrl.enter="run">
     <el-col :span="8">
-      <el-form label-width="auto" class="main-card">
-        <!-- sections -->
-        <el-form-item v-for="(sec, index) in sections" :key="index" :label="sec.type">
-          <template v-if="sectionShowType(sec.type) === 'input'">
-            <el-input v-model="sec.text"></el-input>
-          </template>
-          <template v-else-if="sectionShowType(sec.type) === 'text'">
-            <el-input v-model="sec.text" type="textarea"></el-input>
-          </template>
-          <template v-else>
-            <CodeEditor v-model="sec.text" :height="400" />
-          </template>
-        </el-form-item>
-        <!-- buttons -->
-        <el-form-item>
-          <div class="flex-right">
-            <el-button type="primary" @click="run">Run</el-button>
-          </div>
-        </el-form-item>
-      </el-form>
+      <CodeEditor v-model="testContent" :height="400" />
     </el-col>
     <el-col :span="16" class="detail-card">
       <RunResultCard :info="runResult.info" :output="runResult.output" :expect="runResult.expect" />
@@ -38,12 +19,10 @@
 </style>
 
 <script setup lang="ts">
-import { onMounted, ref, type Ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import CodeEditor from '@/components/CodeEditor.vue'
 import { apiTestDetail, apiTestRunCustom } from '@/api/test'
-import type { SectionType, Section } from '@/models/test'
-import { sectionMapToList, sectionListToMap } from '@/models/test'
 import RunResultCard from '@/components/test/RunResultCard.vue'
 
 // 从路由path获取参数
@@ -56,22 +35,7 @@ const root = (route.query.root || '') as string
 const path = (route.query.path || '') as string
 
 // sections
-type SectionShowType = 'input' | 'text' | 'code'
-const sections: Ref<Section[]> = ref([])
-function sectionShowType(type: SectionType): SectionShowType {
-  switch (type) {
-    case 'FILE':
-    case 'SKIPIF':
-    case 'CLEAN':
-      return 'code'
-    case 'EXPECT':
-    case 'EXPECTF':
-    case 'EXPECTREGEX':
-      return 'text'
-    default:
-      return 'input'
-  }
-}
+const testContent = ref('')
 
 // 初始化case数据
 onMounted(async () => {
@@ -81,8 +45,7 @@ onMounted(async () => {
     path: path
   })
 
-  sections.value = sectionMapToList(data.sections)
-  console.log(sections.value)
+  testContent.value = data.content
   run()
 })
 
@@ -93,10 +56,11 @@ function run() {
     mode: mode,
     root: root,
     path: path,
-    sections: sectionListToMap(sections.value)
+    content: testContent.value
   }).then(
     (data) => {
-      updateResult(data.info, data.output, data.expect)
+      const result = data.result
+      updateResult(result.info, result.output, result.expected)
     },
     () => {
       updateResult('调用 url 失败', '', '')

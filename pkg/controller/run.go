@@ -58,5 +58,5 @@ func RunCodeHandler(c *gin.Context) any {
 	}
 
 	// 执行代码，并返回结果
-	return manager.Run(p.Code)
+	return manager.RunCode(p.Code)
 }

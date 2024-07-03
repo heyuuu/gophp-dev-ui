@@ -33,3 +33,22 @@ type RunResult struct {
 	Result []RunResultItem `json:"result"`
 	Error  string          `json:"error"`
 }
+
+type TestResultStatus string
+
+const (
+	TestResultPass TestResultStatus = "PASS" // 执行成功
+	TestResultFail TestResultStatus = "FAIL" // 执行失败
+	TestResultBork TestResultStatus = "BORK" // 测试case不合法
+	TestResultSkip TestResultStatus = "SKIP" // 跳过执行
+)
+
+type TestResult struct {
+	Code       string           `json:"code"`
+	Expected   string           `json:"expected"`
+	Status     TestResultStatus `json:"status"`
+	StatusText string           `json:"status_text"`
+	Output     string           `json:"output"`
+	Info       string           `json:"info"`
+	UseTime    int64            `json:"useTime"`
+}

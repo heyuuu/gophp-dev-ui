@@ -36,7 +36,7 @@ import { pageTestList } from '@/router/routes'
 
 // 从路由path获取参数
 const props = defineProps<{ mode: string }>()
-const mode = props.mode || ''
+const mode: Ref<string> = computed(() => props.mode || '')
 
 //
 const root = ref('')
@@ -44,10 +44,12 @@ const dirList: Ref<string[]> = ref([])
 const tableData = computed(() => dirList.value.map((name) => ({ name })))
 
 // 初始化配置
-onMounted(async () => {
-  const config = await apiTestConfig({ mode: mode })
+async function updateConfig() {
+  const config = await apiTestConfig({ mode: mode.value })
   root.value = config.defaultTestRoot
-})
+}
+onMounted(updateConfig)
+watch(mode, updateConfig)
 
 // 更新列表
 async function update() {
@@ -57,7 +59,7 @@ async function update() {
   }
 
   const data = await apiTestPathList({
-    mode: mode,
+    mode: mode.value,
     root: root.value
   })
   dirList.value = data.list

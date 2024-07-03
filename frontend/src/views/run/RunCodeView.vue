@@ -139,7 +139,7 @@
 </style>
 
 <script setup lang="ts">
-import { onMounted, ref, watch, type Ref } from 'vue'
+import { computed, onMounted, ref, watch, type Ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import { apiRunConfig, apiRunCode } from '@/api/run'
@@ -152,7 +152,7 @@ const TypeSrc = '@'
 
 // 从路由path获取参数
 const props = defineProps<{ mode: string }>()
-const mode = props.mode
+const mode: Ref<string> = computed(() => props.mode || '')
 
 // 从路由hash获取参数
 const code = ref('<?php\n')
@@ -167,14 +167,15 @@ useRouteHash({ code, autoRefresh, openDiffMode, showTypes, diffTypeLeft, diffTyp
 
 // 初始化配置
 const allTypes: Ref<string[]> = ref([]) // 全量的类型列表
-onMounted(async () => {
-  apiRunConfig({ mode: mode }).then((res) => {
-    allTypes.value = res.types
-    if (showTypes.value.length === 0) {
-      showTypes.value = allTypes.value
-    }
-  })
-})
+async function updateConfig() {
+  const config = await apiRunConfig({ mode: mode.value })
+  allTypes.value = config.types
+  if (showTypes.value.length === 0) {
+    showTypes.value = allTypes.value
+  }
+}
+onMounted(updateConfig)
+watch(mode, updateConfig)
 
 // 执行结果开关
 function isShowType(typ: string): boolean {
@@ -233,7 +234,7 @@ function runCode() {
   runIndex++
   const currIndex = runIndex
 
-  apiRunCode({ mode: mode, code: code.value }).then(
+  apiRunCode({ mode: mode.value, code: code.value }).then(
     (res) => {
       if (currIndex !== runIndex) {
         return
