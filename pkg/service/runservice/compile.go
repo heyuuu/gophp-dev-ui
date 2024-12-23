@@ -33,7 +33,7 @@ func (m *CompileManager) AllResultTypes() []ResultType {
 }
 
 func (m *CompileManager) RunCode(code string) *RunResult {
-	return NewRunner(true).Run(code)
+	return RunCode(code, m.AllResultTypes())
 }
 
 func (m *CompileManager) DefaultTestRoot() string {

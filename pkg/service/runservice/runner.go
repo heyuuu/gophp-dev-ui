@@ -21,29 +21,9 @@ import (
 	"time"
 )
 
-type Runner struct {
-	compileMode bool
-	resultItems []RunResultItem
-	err         error
-}
-
-func NewRunner(compileMode bool) *Runner {
-	return &Runner{
-		compileMode: compileMode,
-	}
-}
-
-func (r *Runner) reset() {
-	r.resultItems = nil
-	r.err = nil
-}
-
-func (r *Runner) Run(code string) *RunResult {
-	// reset
-	r.reset()
-
-	// run
-	r.realRunCode(code)
+func RunCode(code string, resultTypes []ResultType) *RunResult {
+	r := newRunner(code, resultTypes)
+	r.run()
 
 	// build result
 	result := new(RunResult)
@@ -55,7 +35,32 @@ func (r *Runner) Run(code string) *RunResult {
 	return result
 }
 
-func (r *Runner) realRunCode(code string) {
+type runner struct {
+	code          string
+	resultTypes   []ResultType
+	resultTypeSet map[ResultType]bool
+
+	// result
+	resultItems []RunResultItem
+	err         error
+
+	// runtime cache
+	isTestCase bool
+	srcCode    string
+	expected   string
+	parseRaw   string
+	astFile    *ast.File
+	irFile     *ir.File
+}
+
+func newRunner(code string, resultTypes []ResultType) *runner {
+	return &runner{
+		code:        code,
+		resultTypes: resultTypes,
+	}
+}
+
+func (r *runner) run() {
 	defer func() {
 		if e := recover(); e != nil {
 			if err, ok := e.(error); ok && err != nil {
@@ -67,100 +72,115 @@ func (r *Runner) realRunCode(code string) {
 	}()
 
 	// load test case
-	isTestCaseMode := strings.HasPrefix(code, "!!!")
+	isTestCaseMode := strings.HasPrefix(r.code, "!!!")
 	if isTestCaseMode {
-		testCaseFile := strings.TrimSpace(code[3:])
+		testCaseFile := strings.TrimSpace(r.code[3:])
 		src, expected, err := loadTestCase(testCaseFile)
 		if err != nil {
 			r.err = err
 			return
 		}
-		r.addResult(RunTypeSrc, "php", src)
-		r.addResult(RunTypeExpected, "go", expected)
 
-		code = src
+		r.isTestCase = true
+		r.srcCode = src
+		r.expected = expected
+	} else {
+		r.srcCode = r.code
 	}
 
-	r.runCode(code)
+	// 遍历获取结果
+	r.resultItems = make([]RunResultItem, 0, len(r.resultTypes))
+	for _, resultType := range r.resultTypes {
+		lang, content, ok := r.calcResult(resultType)
+		if ok {
+			r.resultItems = append(r.resultItems, RunResultItem{
+				Type:     resultType,
+				Language: lang,
+				Content:  content,
+			})
+		}
+	}
 }
 
-func (r *Runner) checkError(prefix string, err error) {
+func (r *runner) checkError(prefix string, err error) {
 	if err != nil {
 		panic(fmt.Errorf(prefix+" %w", err))
 	}
 }
 
-func (r *Runner) addResult(typ ResultType, lang string, content string) {
-	r.resultItems = append(r.resultItems, RunResultItem{
-		Type:     typ,
-		Language: lang,
-		Content:  content,
-	})
-}
-
-func (r *Runner) runCode(code string) {
-	if r.compileMode {
-		r.runCodeCompile(code)
-	} else {
-		r.runCodeExecute(code)
+func (r *runner) calcResult(typ ResultType) (lang string, content string, ok bool) {
+	switch typ {
+	case RunTypeSrc:
+		return "php", r.srcCode, true
+	case RunTypeExpected:
+		return "go", r.expected, r.isTestCase
+	case RunTypeParseRaw:
+		parseRaw, _ := r.requireAstFileEx()
+		return "json", parseRaw, true
+	case RunTypeAst:
+		astFile := r.requireAstFile()
+		astDump := vardumper.DumpEx(astFile, vardumper.Config{
+			ShowLineNum:        true,
+			ShowAnonymousField: true,
+		})
+		return "", astDump, true
+	case RunTypeAstPrint:
+		astFile := r.requireAstFile()
+		astPrint, err := ast.PrintFile(astFile)
+		r.checkError(`ast print fail: `, err)
+		return "php", astPrint, true
+	case RunTypeIr:
+		irFile := r.requireIrFile()
+		irDump := vardumper.Dump(irFile)
+		return "", irDump, true
+	case RunTypeIrPrint:
+		irFile := r.requireIrFile()
+		irPrint, err := ir.PrintFile(irFile)
+		r.checkError("ir print fail: ", err)
+		return "php", irPrint, true
+	case RunTypeIrRender:
+		irFile := r.requireIrFile()
+		irRender, err := render.RenderFile(irFile)
+		r.checkError("ir render fail: ", err)
+		return "go", irRender, true
+	case RunTypeExec:
+		output := r.executeCode(r.srcCode)
+		return "", output, true
+	case RunTypeExecRaw:
+		output := r.executeCodeRaw(r.srcCode)
+		return "", output, true
+	default:
+		panic(fmt.Errorf("unknown run type: %v", typ))
 	}
 }
 
-func (r *Runner) runCodeCompile(code string) {
-	// parse
-	parseRaw, astFile, err := parser.ParseCodeVerbose(code)
-	r.addResult(RunTypeParseRaw, "json", parseRaw)
-	r.checkError(`ast parse fail: `, err)
-
-	astDump := vardumper.DumpEx(astFile, vardumper.Config{
-		ShowLineNum:        true,
-		ShowAnonymousField: true,
-	})
-	r.addResult(RunTypeAst, "", astDump)
-
-	astPrint, err := ast.PrintFile(astFile)
-	r.checkError(`ast print fail: `, err)
-	r.addResult(RunTypeAstPrint, "php", astPrint)
-
-	// transformer
-	irFile, err := transformer.TransformFile(astFile)
-	r.checkError("ir transformer fail: ", err)
-
-	irDump := vardumper.Dump(irFile)
-	r.addResult(RunTypeIr, "", irDump)
-
-	irPrint, err := ir.PrintFile(irFile)
-	r.checkError("ir print fail: ", err)
-	r.addResult(RunTypeIrPrint, "php", irPrint)
-
-	// render
-	irRender, err := render.RenderFile(irFile)
-	r.checkError("ir render fail: ", err)
-	r.addResult(RunTypeIrRender, "go", irRender)
+func (r *runner) requireAstFile() *ast.File {
+	_, astFile := r.requireAstFileEx()
+	return astFile
 }
 
-func (r *Runner) runCodeExecute(code string) {
-	// parse-ast
-	astNodes, err := parser.ParseCode(code)
-	r.checkError("ast parse fail: %w", err)
-
-	astDump := vardumper.Dump(astNodes)
-	r.addResult(RunTypeAst, "", astDump)
-
-	astPrint, err := ast.PrintFile(astNodes)
-	r.checkError("ast print fail: %w", err)
-	r.addResult(RunTypeAstPrint, "", astPrint)
-
-	// run code
-	output := r.executeCode(code)
-	r.addResult(RunTypeExec, "", output)
-
-	// raw run code
-	rawOutput := r.executeCodeRaw(code)
-	r.addResult(RunTypeExecRaw, "", rawOutput)
+func (r *runner) requireAstFileEx() (string, *ast.File) {
+	if r.astFile == nil {
+		parseRaw, astFile, err := parser.ParseCodeVerbose(r.srcCode)
+		r.checkError(`ast parse fail: `, err)
+		r.parseRaw = parseRaw
+		r.astFile = astFile
+	}
+	return r.parseRaw, r.astFile
 }
 
-func (r *Runner) executeCode(code string) string {
+func (r *runner) requireIrFile() *ir.File {
+	if r.irFile == nil {
+		astFile := r.requireAstFile()
+		irFile, err := transformer.TransformFile(astFile)
+		r.checkError("ir transformer fail: ", err)
+		r.irFile = irFile
+	}
+	return r.irFile
+}
+
+// ResultType: RunTypeExec
+func (r *runner) executeCode(code string) string {
 	if strings.HasPrefix(code, "<?php\n") {
 		code = code[6:]
 	} else {
@@ -185,7 +205,8 @@ func (r *Runner) executeCode(code string) string {
 	return buf.String()
 }
 
-func (r *Runner) executeCodeRaw(code string) string {
+// ResultType: RunTypeExecRaw
+func (r *runner) executeCodeRaw(code string) string {
 	if strings.HasPrefix(code, "<?php\n") {
 		code = code[6:]
 	} else {
@@ -203,7 +224,7 @@ func (r *Runner) executeCodeRaw(code string) string {
 	return output
 }
 
-func (r *Runner) runCommand(timeout time.Duration, name string, args ...string) (string, error) {
+func (r *runner) runCommand(timeout time.Duration, name string, args ...string) (string, error) {
 	// 超时控制
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
