@@ -24,7 +24,7 @@ func (m *ExecuteManager) AllResultTypes() []ResultType {
 }
 
 func (m *ExecuteManager) RunCode(code string) *RunResult {
-	return new(executeRunner).run(code)
+	return NewRunner(false).Run(code)
 }
 
 func (m *ExecuteManager) DefaultTestRoot() string {

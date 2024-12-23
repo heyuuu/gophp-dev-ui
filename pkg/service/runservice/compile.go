@@ -1,7 +1,6 @@
 package runservice
 
 import (
-	"fmt"
 	"github.com/heyuuu/gophp/compile/parser"
 	"github.com/heyuuu/gophp/compile/render"
 	"github.com/heyuuu/gophp/compile/transformer"
@@ -34,7 +33,7 @@ func (m *CompileManager) AllResultTypes() []ResultType {
 }
 
 func (m *CompileManager) RunCode(code string) *RunResult {
-	return new(compileRunner).run(code)
+	return NewRunner(true).Run(code)
 }
 
 func (m *CompileManager) DefaultTestRoot() string {
@@ -89,22 +88,10 @@ func (m *CompileManager) RunTestCaseCustom(root string, path string, content str
 }
 
 func (m *CompileManager) loadTestCase(srcFile string) (*CompileCase, error) {
-	if !strings.HasSuffix(srcFile, ".php") {
-		return nil, fmt.Errorf("test case file must be .php")
-
-	}
-
-	src, err := oskit.ReadFileAsString(srcFile)
+	src, expected, err := loadTestCase(srcFile)
 	if err != nil {
-		return nil, fmt.Errorf("load src file failed: %w", err)
+		return nil, err
 	}
-
-	expectedFile := strings.TrimSuffix(srcFile, ".php") + ".go"
-	expected, err := oskit.ReadFileAsString(expectedFile)
-	if err != nil {
-		return nil, fmt.Errorf("load expected file failed: %w", err)
-	}
-
 	tc := &CompileCase{
 		src:      src,
 		expected: expected,

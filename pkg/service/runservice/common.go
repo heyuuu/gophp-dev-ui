@@ -1,9 +1,12 @@
 package runservice
 
 import (
+	"fmt"
+	"github.com/heyuuu/gophp/kits/oskit"
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 )
 
 func findTestFiles(root string, path string, checker func(file string) bool) []string {
@@ -80,4 +83,26 @@ func eachTestPath(dir string, checker func(file string) bool, handler func(file 
 	}
 
 	return isTestPath
+}
+
+func loadTestCase(srcFile string) (src string, expected string, err error) {
+	if !strings.HasSuffix(srcFile, ".php") {
+		err = fmt.Errorf("test case file must be .php")
+		return
+	}
+
+	src, err = oskit.ReadFileAsString(srcFile)
+	if err != nil {
+		err = fmt.Errorf("load src file failed: %w", err)
+		return
+	}
+
+	expectedFile := strings.TrimSuffix(srcFile, ".php") + ".go"
+	expected, err = oskit.ReadFileAsString(expectedFile)
+	if err != nil {
+		err = fmt.Errorf("load expected file failed: %w", err)
+		return
+	}
+
+	return
 }
